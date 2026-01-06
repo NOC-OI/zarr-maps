@@ -2,13 +2,13 @@ import { themes as prismThemes } from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'zarr-leaflet',
+  title: 'zarr-maps',
   tagline: 'Visualize multidimensional Zarr datasets in Leaflet',
   url: 'https://noc-oi.github.io',
-  baseUrl: '/zarr-leaflet/docs/',
+  baseUrl: '/zarr-maps/docs/',
 
   organizationName: 'NOC-OI',
-  projectName: 'zarr-leaflet',
+  projectName: 'zarr-maps',
   onBrokenLinks: 'warn',
   markdown: {
     hooks: {
@@ -82,16 +82,16 @@ const config = {
             type: 'doc',
             docId: 'index',
             position: 'left',
-            label: 'zarr-leaflet Docs'
+            label: 'zarr-maps Docs'
           },
           {
-            href: 'https://github.com/NOC-OI/zarr-leaflet',
+            href: 'https://github.com/NOC-OI/zarr-maps',
             label: 'GitHub',
             position: 'right'
           },
           {
             label: 'Demo',
-            href: 'https://noc-oi.github.io/zarr-leaflet',
+            href: 'https://noc-oi.github.io/zarr-maps',
             position: 'right'
           }
         ]
@@ -103,11 +103,11 @@ const config = {
             items: [
               {
                 label: 'GitHub',
-                href: 'https://github.com/NOC-OI/zarr-leaflet'
+                href: 'https://github.com/NOC-OI/zarr-maps'
               },
               {
                 label: 'Demo',
-                href: 'https://noc-oi.github.io/zarr-leaflet'
+                href: 'https://noc-oi.github.io/zarr-maps'
               }
             ]
           }

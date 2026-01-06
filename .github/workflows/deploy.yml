@@ -50,7 +50,7 @@ jobs:
         run: |
           mkdir -p public/docs
           cp -r demo/dist/* public/
-          mv public/zarr-leaflet/* public/
+          mv public/zarr-maps/* public/
           cp -r docs/build/* public/docs/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

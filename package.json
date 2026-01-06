@@ -1,7 +1,7 @@
 {
-  "name": "zarr-leaflet",
+  "name": "zarr-maps",
   "version": "0.1.0",
-  "description": "A Leaflet integration library for visualizing Zarr datasets.",
+  "description": "A Leaflet and OpenLayers integration library for visualizing Zarr datasets.",
   "author": "Tobias <tobias.ferreira@noc.ac.uk>",
   "license": "MIT",
   "type": "module",
@@ -11,6 +11,18 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./core": {
+      "import": "./dist/core/index.js",
+      "types": "./dist/core/index.d.ts"
+    },
+    "./leaflet": {
+      "import": "./dist/leaflet/index.js",
+      "types": "./dist/leaflet/index.d.ts"
+    },
+    "./openlayers": {
+      "import": "./dist/openlayers/index.js",
+      "types": "./dist/openlayers/index.d.ts"
     }
   },
   "types": "./dist/index.d.ts",
@@ -19,14 +31,15 @@
     "dist"
   ],
   "scripts": {
-    "dev": "tsup src/index.ts --format cjs,esm --dts --sourcemap --watch",
-    "build": "tsup src/index.ts --format esm --dts --sourcemap",
+    "build": "tsup src/index.ts src/core/index.ts src/leaflet/index.ts src/openlayers/index.ts --format esm --dts --sourcemap",
+    "dev": "tsup src/index.ts src/core/index.ts src/leaflet/index.ts src/openlayers/index.ts --format esm --dts --sourcemap --watch",
     "clean": "rm -rf dist",
     "docs": "typedoc",
     "start:demo": "cd demo && npm run dev"
   },
   "peerDependencies": {
-    "leaflet": "*"
+    "leaflet": "*",
+    "ol": "*"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.21",
@@ -41,11 +54,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/noc-oi/zarr-leaflet.git"
+    "url": "https://github.com/noc-oi/zarr-maps.git"
   },
   "bugs": {
-    "url": "https://github.com/noc-oi/zarr-leaflet/issues"
+    "url": "https://github.com/noc-oi/zarr-maps/issues"
   },
-  "homepage": "https://noc-oi.github.io/zarr-leaflet",
+  "homepage": "https://noc-oi.github.io/zarr-maps",
   "packageManager": "yarn@1.22.22"
 }

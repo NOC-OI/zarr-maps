@@ -6,6 +6,16 @@ import { DimensionNamesProps } from './types';
 export const DEFAULT_COLORMAP = 'viridis';
 
 /**
+ * Earth's radius in meters for Web Mercator projection.
+ */
+export const EARTH_RADIUS = 6378137;
+
+/**
+ * Maximum latitude in degrees for Web Mercator projection.
+ */
+export const MAX_LAT = 85.05112878;
+
+/**
  * Default data scale range for visualization.
  */
 export const DEFAULT_SCALE: [number, number] = [0, 1];

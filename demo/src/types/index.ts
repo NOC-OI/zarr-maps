@@ -1,5 +1,5 @@
-import type { BoundsProps, ZarrSelectorsProps } from '../../../dist';
-import type { LayerOptions } from '../../../dist';
+import type { BoundsProps, ZarrSelectorsProps } from 'zarr-leaflet';
+import type { LayerOptions } from 'zarr-leaflet';
 
 export interface keyable {
   [key: string]: any;

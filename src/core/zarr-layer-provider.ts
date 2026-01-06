@@ -2,7 +2,7 @@ import * as zarr from 'zarrita';
 import { colormapBuilder } from './jsColormaps';
 import {
   calculateNearestIndex,
-  calculateSliceArgsRequestImage,
+  calculateSliceArgs,
   detectCRS,
   extractNoDataMetadata,
   getXYLimits,
@@ -19,14 +19,22 @@ import type {
   CRS,
   DimensionNamesProps,
   DimIndicesProps,
-  LayerOptions,
   XYLimits,
   ZarrLevelMetadata,
   ZarrSelectorsProps,
   DimensionValues,
   BoundsProps
 } from './types';
+import type { LeafletLayerOptions } from '../leaflet/types';
+import type { OLLayerOptions } from '../ol/types';
 
+/* -------------------------------------------------------------------------- */
+/*                           ZARR LAYER PROVIDER                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Provides Zarr dataset access and rendering capabilities for map layers.
+ */
 export class ZarrLayerProvider {
   public dimensionValues: DimensionValues = {};
   public selectors: { [key: string]: ZarrSelectorsProps } = {};
@@ -69,6 +77,11 @@ export class ZarrLayerProvider {
   private program: WebGLProgram | null = null;
   private colorTexture: WebGLTexture | null = null;
   private uniforms: { [key: string]: WebGLUniformLocation | null } = {};
+  private attribs: { a_position: number; a_texCoord: number } | null = null;
+  private selectorHash: string = '';
+  private vao: WebGLVertexArrayObject | null = null;
+  private quadVbo: WebGLBuffer | null = null;
+  private dataTexture: WebGLTexture | null = null;
 
   private _ready = false;
   private _readyPromise!: Promise<boolean>;
@@ -80,7 +93,7 @@ export class ZarrLayerProvider {
   private static activeRequests = 0;
   private static readonly queue: (() => void)[] = [];
 
-  constructor(options: LayerOptions & { tileSize?: number }) {
+  constructor(options: LeafletLayerOptions | OLLayerOptions) {
     this.url = options.url;
     this.variable = options.variable;
     this.zarrVersion = options.zarrVersion ?? null;
@@ -226,6 +239,8 @@ export class ZarrLayerProvider {
           yMax: latDegToMercY(this.coverageBoundsDeg.north)
         };
       }
+      this.selectorHash = this.computeSelectorHash(this.selectors);
+
       await this.loadInitialDimensionValues();
 
       return true;
@@ -233,6 +248,24 @@ export class ZarrLayerProvider {
       console.error('Failed to init ZarrLayerProvider:', e);
       return false;
     }
+  }
+
+  private computeSelectorHash(selector: { [key: string]: ZarrSelectorsProps }): string {
+    const sortKeys = (value: unknown): unknown => {
+      if (Array.isArray(value) || value === null) return value;
+      if (typeof value !== 'object') return value;
+
+      const obj = value as Record<string, unknown>;
+      const sorted: Record<string, unknown> = {};
+      Object.keys(obj)
+        .sort()
+        .forEach(k => {
+          sorted[k] = sortKeys(obj[k]);
+        });
+      return sorted;
+    };
+
+    return JSON.stringify(sortKeys(selector));
   }
 
   private async loadInitialDimensionValues(): Promise<void> {
@@ -269,40 +302,69 @@ export class ZarrLayerProvider {
     canvas.width = this.tileSize;
     canvas.height = this.tileSize;
 
-    this.gl = canvas.getContext('webgl2', {
+    const gl = canvas.getContext('webgl2', {
       preserveDrawingBuffer: false,
       premultipliedAlpha: false
-    }) as WebGL2RenderingContext;
-    if (!this.gl) {
+    }) as WebGL2RenderingContext | null;
+
+    this.gl = gl;
+    if (!gl) {
       console.error('WebGL2 not supported');
       return;
     }
-    const gl = this.gl;
 
-    const vs = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-    const fs = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-    if (!vs || !fs) return;
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    if (!vertexShader || !fragmentShader) {
+      console.error('Shader creation failed');
+      return;
+    }
 
-    this.program = createProgram(gl, vs, fs);
+    const program = createProgram(gl, vertexShader, fragmentShader);
+    this.program = program;
     if (!this.program) return;
 
     this.updateColormapTexture();
 
-    const positions = new Float32Array([
-      -1, -1, 0, 0, 1, -1, 1, 0, -1, 1, 0, 1, -1, 1, 0, 1, 1, -1, 1, 0, 1, 1, 1, 1
-    ]);
+    this.attribs = {
+      a_position: gl.getAttribLocation(this.program, 'a_position'),
+      a_texCoord: gl.getAttribLocation(this.program, 'a_texCoord')
+    };
 
-    const buffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    this.vao = gl.createVertexArray();
+    this.quadVbo = gl.createBuffer();
+    if (!this.vao || !this.quadVbo) {
+      console.error('Failed to create VAO/VBO');
+      return;
+    }
 
-    const posLoc = gl.getAttribLocation(this.program, 'a_position');
-    const uvLoc = gl.getAttribLocation(this.program, 'a_texCoord');
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 16, 0);
-    gl.enableVertexAttribArray(uvLoc);
-    gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 16, 8);
+    gl.bindVertexArray(this.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.quadVbo);
 
+    // Allocate once (24 floats = 6 vertices * (pos.xy + uv.xy) = 6*4 = 24 floats)
+    gl.bufferData(gl.ARRAY_BUFFER, 24 * 4, gl.DYNAMIC_DRAW);
+
+    gl.enableVertexAttribArray(this.attribs.a_position);
+    gl.vertexAttribPointer(this.attribs.a_position, 2, gl.FLOAT, false, 16, 0);
+
+    gl.enableVertexAttribArray(this.attribs.a_texCoord);
+    gl.vertexAttribPointer(this.attribs.a_texCoord, 2, gl.FLOAT, false, 16, 8);
+
+    gl.bindVertexArray(null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    this.dataTexture = gl.createTexture();
+    if (!this.dataTexture) {
+      console.error('Failed to create data texture');
+      return;
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, this.dataTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(gl.TEXTURE_2D, null);
     this.uniforms = {
       u_dataTexture: gl.getUniformLocation(this.program, 'u_dataTexture'),
       u_colorRamp: gl.getUniformLocation(this.program, 'u_colorRamp'),
@@ -377,10 +439,6 @@ export class ZarrLayerProvider {
     return { dataWidth, dataHeight, currentArray, multiscaleLevel: lvl };
   }
 
-  /**
-   * The Leaflet-facing tile renderer:
-   * boundsDeg: tile bounds in degrees (west,south,east,north)
-   */
   async renderTile(boundsDeg: BoundsProps, z: number, key: string) {
     if (this.destroyed) return this.emptyCanvas();
 
@@ -388,7 +446,7 @@ export class ZarrLayerProvider {
       await this.readyPromise;
       if (!this.gl || !this.program || !this.coverageBoundsDeg) return this.emptyCanvas();
     }
-
+    key = `${this.selectorHash}/${key}`;
     const controller = this.prepareAbortController(key);
 
     try {
@@ -437,7 +495,7 @@ export class ZarrLayerProvider {
 
       if (w <= 0 || h <= 0) return this.emptyCanvas();
 
-      const sliceArgs = calculateSliceArgsRequestImage(
+      const sliceArgs = calculateSliceArgs(
         currentArray.shape,
         { startX: sX, endX: eX, startY: sY, endY: eY },
         this.dimIndices,
@@ -448,11 +506,9 @@ export class ZarrLayerProvider {
         zarr.get(currentArray, sliceArgs, { opts: { signal: controller.signal } })
       );
 
-      // const flatData = new Float32Array((data.data as Float32Array).buffer);
-
       const src = data.data as Float32Array;
       const view = new Float32Array(src.buffer, src.byteOffset, src.length);
-      const flatData = new Float32Array(view); // copies just the slice
+      const flatData = new Float32Array(view);
 
       return await this.renderWithWebGL(flatData, w, h, {
         fracWest,

@@ -45,7 +45,7 @@ export function removeLayerFromMap(
 
   map.removeLayer(layer);
 
-  if (layerInfo.dataType === 'zarr-leaflet') {
+  if (layerInfo.dataType === 'zarr-maps') {
     layer.provider?.destroy?.();
   }
 }
@@ -71,7 +71,7 @@ export async function changeMapOpacity(
   const layer: any = findLayerById(map, actualLayer);
   if (!layer) return;
 
-  if (layerInfo.dataType === 'zarr-leaflet') {
+  if (layerInfo.dataType === 'zarr-maps') {
     if (typeof layer.updateStyle === 'function') {
       layer.updateStyle({ opacity });
     } else if (typeof layer.setOpacity === 'function') {
@@ -112,7 +112,7 @@ export async function changeMapDimensions(
 
   const layer: any = findLayerById(map, actualLayer);
 
-  if (layerInfo.dataType === 'zarr-leaflet' && layer) {
+  if (layerInfo.dataType === 'zarr-maps' && layer) {
     if (typeof layer.updateSelectors === 'function') {
       layer.updateSelectors(layerInfo.params.selectors);
     } else if (layer.provider?.updateSelectors) {

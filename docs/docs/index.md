@@ -9,8 +9,8 @@ slug: /
 
 **Leaflet providers for interactive 2D and 3D visualization of environmental and atmospheric data stored in Zarr.**
 
-- **Demo:** https://noc-oi.github.io/zarr-leaflet/
-- **GitHub:** https://github.com/NOC-OI/zarr-leaflet
+- **Demo:** https://noc-oi.github.io/zarr-maps/
+- **GitHub:** https://github.com/NOC-OI/zarr-maps
 
 Zarr-leaflet enables **direct, client-side visualization of scientific datasets** stored in the [Zarr](https://zarr.dev) format. No preprocessing. No tile servers. No backend.
 
@@ -20,7 +20,7 @@ It provides a set of **Leaflet data providers** that stream and render multidime
 
 <div style={{ maxWidth: "800px", margin: "0 auto" }}>
   <video
-    src="https://github.com/NOC-OI/zarr-leaflet/releases/download/0.1.0/cube_velocitycube.mp4"
+    src="https://github.com/NOC-OI/zarr-maps/releases/download/0.1.0/cube_velocitycube.mp4"
     loop
     controls
     muted
@@ -29,7 +29,7 @@ It provides a set of **Leaflet data providers** that stream and render multidime
 </div>
 <div style={{ maxWidth: "800px", margin: "0 auto" }}>
   <video
-    src="https://github.com/NOC-OI/zarr-leaflet/releases/download/0.1.0/layer_provider.mp4"
+    src="https://github.com/NOC-OI/zarr-maps/releases/download/0.1.0/layer_provider.mp4"
     loop
     controls
     muted
@@ -38,7 +38,7 @@ It provides a set of **Leaflet data providers** that stream and render multidime
 </div>
 <div style={{ maxWidth: "800px", margin: "0 auto" }}>
   <video
-    src="https://github.com/NOC-OI/zarr-leaflet/releases/download/0.1.0/cube_globe.mp4"
+    src="https://github.com/NOC-OI/zarr-maps/releases/download/0.1.0/cube_globe.mp4"
     loop
     controls
     muted
@@ -77,7 +77,7 @@ Zarr Store (HTTP / S3 / GCS)
 ↓
 zarrita.js (Zarr client)
 ↓
-zarr-leaflet Providers
+zarr-maps Providers
 ↓
 Leaflet (WebGL)
 ↓

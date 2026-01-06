@@ -11,7 +11,6 @@
  * - CRS detection and coordinate transformation utilities
 = */
 
-import proj4 from 'proj4';
 import * as zarr from 'zarrita';
 import {
   type ZarrSelectorsProps,
@@ -99,141 +98,13 @@ export function identifyDimensionIndices(
  * @param dataSlice           Pixel-space slice ranges `{ startX, endX, startY, endY, startElevation?, endElevation? }` (see {@link DataSliceProps}).
  * @param dimIndices          Mapping of dimension names → indices as returned by `identifyDimensionIndices` (see {@link DimIndicesProps}).
  * @param selectors           User-provided selection map (lat/lon/elevation/time/etc.). See {@link ZarrSelectorsProps}.
- * @param dimensionValues     Cache of already-loaded coordinate arrays (mutated by this function).
- * @param root                Root Zarr group location.
- * @param levelInfo           Optional multiscale subpath.
- * @param zarrVersion         Zarr version (2 or 3).
- * @param updateDimensionValues  If true, rewrites dimensionValues only for the selected ranges.
  *
  * @returns An object containing:
  *   - `sliceArgs`: Array of slice objects/indexes matching the array's dimensions. See {@link SliceArgs}.
  *   - `dimensionValues`: Possibly updated coordinate arrays.
  *   - `selectors`: Updated index-based selectors. See {@link ZarrSelectorsProps}.
  */
-export async function calculateSliceArgs(
-  shape: number[],
-  dataSlice: DataSliceProps,
-  dimIndices: DimIndicesProps,
-  selectors: { [key: string]: ZarrSelectorsProps },
-  dimensionValues: DimensionValues,
-  root: zarr.Location<zarr.FetchStore>,
-  levelInfo: string | null,
-  zarrVersion: 2 | 3 | null,
-  updateDimensionValues: boolean = false
-): Promise<{
-  sliceArgs: SliceArgs;
-  dimensionValues: DimensionValues;
-  selectors: { [key: string]: ZarrSelectorsProps };
-}> {
-  const sliceArgs: SliceArgs = new Array(shape.length).fill(0);
-  const newDimensionValues = structuredClone(dimensionValues);
-  const newSelectors = structuredClone(selectors);
-  for (const dimName of Object.keys(dimIndices)) {
-    const dimInfo = dimIndices[dimName];
-    if (dimName === 'lon') {
-      sliceArgs[dimInfo.index] = zarr.slice(dataSlice.startX, dataSlice.endX);
-      if (updateDimensionValues) {
-        newDimensionValues[dimName] = await loadDimensionValues(
-          newDimensionValues,
-          levelInfo,
-          dimInfo,
-          root,
-          zarrVersion,
-          [dataSlice.startX, dataSlice.endX]
-        );
-      }
-    } else if (dimName === 'lat') {
-      sliceArgs[dimInfo.index] = zarr.slice(dataSlice.startY, dataSlice.endY);
-      if (updateDimensionValues) {
-        newDimensionValues[dimName] = await loadDimensionValues(
-          newDimensionValues,
-          levelInfo,
-          dimInfo,
-          root,
-          zarrVersion,
-          [dataSlice.startY, dataSlice.endY]
-        );
-      }
-    } else if (
-      dimName === 'elevation' &&
-      dataSlice.startElevation !== undefined &&
-      dataSlice.endElevation !== undefined
-    ) {
-      sliceArgs[dimInfo.index] = zarr.slice(dataSlice.startElevation, dataSlice.endElevation);
-      newSelectors[dimName] = {
-        type: 'index',
-        selected: [dataSlice.startElevation, dataSlice.endElevation]
-      };
-      if (updateDimensionValues) {
-        newDimensionValues[dimName] = await loadDimensionValues(
-          newDimensionValues,
-          levelInfo,
-          dimInfo,
-          root,
-          zarrVersion,
-          [dataSlice.startElevation, dataSlice.endElevation]
-        );
-      }
-    } else {
-      const dimSelection = newSelectors[dimName];
-      if (!dimSelection) {
-        newSelectors[dimName] = { type: 'index', selected: 0 };
-        sliceArgs[dimInfo.index] = 0;
-      } else if (dimSelection.type === 'value') {
-        try {
-          newDimensionValues[dimName] = await loadDimensionValues(
-            newDimensionValues,
-            levelInfo,
-            dimInfo,
-            root,
-            zarrVersion
-          );
-          const nearestIdx = calculateNearestIndex(
-            newDimensionValues[dimName],
-            dimSelection.selected as number
-          );
-          newSelectors[dimName] = { type: 'index', selected: nearestIdx };
-          sliceArgs[dimInfo.index] = nearestIdx;
-        } catch (err) {
-          sliceArgs[dimInfo.index] = 0;
-        }
-      } else {
-        newSelectors[dimName] = { type: 'index', selected: dimSelection.selected };
-        sliceArgs[dimInfo.index] = dimSelection.selected as number;
-      }
-
-      newDimensionValues[dimName] = await loadDimensionValues(
-        newDimensionValues,
-        levelInfo,
-        dimInfo,
-        root,
-        zarrVersion
-      );
-    }
-  }
-  return { sliceArgs, dimensionValues: newDimensionValues, selectors: newSelectors };
-}
-
-/**
- * Constructs Zarr slice arguments for extracting a subregion of a multidimensional array.
- *
- * This function:
- * - Converts geographic / elevation slice ranges into Zarr slice objects.
- * - Converts value-based selectors (e.g. `{type: "value", selected: 2020}`) into nearest index selectors.
- * - Optionally loads dimension coordinate arrays for the selected slice.
- * - Produces a *new* selector map describing index-based selections.
- *
- * @param shape               Full array shape.
- * @param dataSlice           Pixel-space slice ranges `{ startX, endX, startY, endY, startElevation?, endElevation? }` (see {@link DataSliceProps}).
- * @param dimIndices          Mapping of dimension names → indices as returned by `identifyDimensionIndices` (see {@link DimIndicesProps}).
- * @param selectors           User-provided selection map (lat/lon/elevation/time/etc.). See {@link ZarrSelectorsProps}.
- *
- * @returns An object containing:
- *   - `sliceArgs`: Array of slice objects/indexes matching the array's dimensions. See {@link SliceArgs}.
- *   - `dimensionValues`: Possibly updated coordinate arrays.
- *   - `selectors`: Updated index-based selectors. See {@link ZarrSelectorsProps}.
- */
-export function calculateSliceArgsRequestImage(
+export function calculateSliceArgs(
   shape: number[],
   dataSlice: DataSliceProps,
   dimIndices: DimIndicesProps,

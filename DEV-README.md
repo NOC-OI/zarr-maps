@@ -1,10 +1,10 @@
-# Developer Guide – zarr-leaflet
+# Developer Guide – zarr-maps
 
 This document explains how to set up a local development environment for:
 
 - The **documentation website** (Docusaurus)
 - The **demo application** (Vite)
-- Contributing to the **zarr-leaflet** library itself
+- Contributing to the **zarr-maps** library itself
 
 Whether you want to fix bugs, add features, or update the docs, this guide will help you get started quickly.
 
@@ -14,7 +14,7 @@ Whether you want to fix bugs, add features, or update the docs, this guide will 
 
 ```
 
-zarr-leaflet/
+zarr-maps/
 ├── src/ # Main TypeScript source code
 ├── docs/ # Documentation website (Docusaurus)
 ├── demo/ # Demo web application (Vite)
@@ -69,8 +69,8 @@ The demo uses **Vite** and displays interactive Leaflet + Zarr examples.
 ## Clone the repository
 
 ```bash
-git clone https://github.com/noc-oi/zarr-leaflet.git
-cd zarr-leaflet/demo
+git clone https://github.com/noc-oi/zarr-maps.git
+cd zarr-maps/demo
 ```
 
 ## Install dependencies
@@ -91,7 +91,7 @@ The demo will be available at:
 
 ## Customize the Demo (Use Your Own Zarr Data)
 
-Edit: [`demo/src/application/data/layers-json.tsx`](https://github.com/NOC-OI/zarr-leaflet/blob/dev/demo/src/application/data/layers-json.tsx).
+Edit: [`demo/src/application/data/layers-json.tsx`](https://github.com/NOC-OI/zarr-maps/blob/dev/demo/src/application/data/layers-json.tsx).
 
 You can change:
 
@@ -100,7 +100,7 @@ You can change:
 - Bounds
 - Colormaps
 - Providers:
-  - dataType "zarr-leaflet" uses provider `ZarrLayerProvider`
+  - dataType "zarr-maps" uses provider `ZarrLayerProvider`
 
 This file is intentionally simple to help you experiment quickly.
 
@@ -111,8 +111,8 @@ This file is intentionally simple to help you experiment quickly.
 To build and develop the core library:
 
 ```bash
-git clone https://github.com/noc-oi/zarr-leaflet.git
-cd zarr-leaflet
+git clone https://github.com/noc-oi/zarr-maps.git
+cd zarr-maps
 npm install
 ```
 

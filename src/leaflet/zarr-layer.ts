@@ -1,11 +1,12 @@
 import L from 'leaflet';
-import type { ColorMapName, LayerOptions, ZarrSelectorsProps } from './types';
-import { ZarrLayerProvider } from './zarr-layer-provider';
+import type { LeafletLayerOptions } from './types';
+import type { ColorMapName, ZarrSelectorsProps } from '../core/types';
+import { ZarrLayerProvider } from '../core/zarr-layer-provider';
 
 export class ZarrLayer extends L.GridLayer {
   public provider: ZarrLayerProvider;
 
-  constructor(options: LayerOptions & L.GridLayerOptions) {
+  constructor(options: LeafletLayerOptions & L.GridLayerOptions) {
     super(options);
     const sizePoint = L.point((options.tileSize as any) ?? 256);
     const { tileSize, ...providerOpts } = options as any;

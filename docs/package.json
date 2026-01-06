@@ -1,5 +1,5 @@
 {
-  "name": "zarr-leaflet-docs",
+  "name": "zarr-maps-docs",
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",

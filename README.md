@@ -1,19 +1,19 @@
 # Zarr-Leaflet Visualization Toolkit
 
-[![NPM Version](https://img.shields.io/npm/v/zarr-leaflet)](https://www.npmjs.com/package/zarr-leaflet)
+[![NPM Version](https://img.shields.io/npm/v/zarr-maps)](https://www.npmjs.com/package/zarr-maps)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Docs](https://img.shields.io/badge/docs-online-blue)](https://noc-oi.github.io/zarr-leaflet/docs)
+[![Docs](https://img.shields.io/badge/docs-online-blue)](https://noc-oi.github.io/zarr-maps/docs)
 
 **Leaflet layers for interactive 2D visualization of environmental geospatial data stored in Zarr.**
 
-- Documentation: [https://noc-oi.github.io/zarr-leaflet/docs](https://noc-oi.github.io/zarr-leaflet/docs)
-- Demo: [https://noc-oi.github.io/zarr-leaflet/](https://noc-oi.github.io/zarr-leaflet/)
+- Documentation: [https://noc-oi.github.io/zarr-maps/docs](https://noc-oi.github.io/zarr-maps/docs)
+- Demo: [https://noc-oi.github.io/zarr-maps/](https://noc-oi.github.io/zarr-maps/)
 
 ---
 
 ## Overview
 
-The **zarr-leaflet Visualization Toolkit** provides **Leaflet GridLayer-based rendering** for n-dimensional datasets stored in the [Zarr](https://zarr.dev) format — streamed directly from cloud object stores (HTTP/S3/GCS) without preprocessing, conversion, or a backend server.
+The **zarr-maps Visualization Toolkit** provides **Leaflet GridLayer-based rendering** for n-dimensional datasets stored in the [Zarr](https://zarr.dev) format — streamed directly from cloud object stores (HTTP/S3/GCS) without preprocessing, conversion, or a backend server.
 
 It is designed for fast, on-demand raster visualization in Leaflet using **GPU-accelerated WebGL color-mapping**.
 
@@ -50,7 +50,7 @@ It is designed for fast, on-demand raster visualization in Leaflet using **GPU-a
 ## Installation
 
 ```bash
-npm install zarr-leaflet
+npm install zarr-maps
 ```
 
 ---
@@ -59,7 +59,7 @@ npm install zarr-leaflet
 
 ```ts
 import L from 'leaflet';
-import { ZarrLayer } from 'zarr-leaflet';
+import { ZarrLayer } from '../../../dist';
 
 const map = L.map('map', {
   center: [36.1, -5.4],
@@ -102,8 +102,8 @@ The toolkit provides two key Leaflet-facing components:
 ## Run the demo locally
 
 ```bash
-git clone https://github.com/noc-oi/zarr-leaflet.git
-cd zarr-leaflet/demo
+git clone https://github.com/noc-oi/zarr-maps.git
+cd zarr-maps/demo
 npm install
 npm run dev
 ```

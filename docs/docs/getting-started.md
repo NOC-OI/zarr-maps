@@ -8,9 +8,9 @@ title: Getting Started
 ## Installation
 
 ```bash
-npm install zarr-leaflet
+npm install zarr-maps
 # or
-yarn add zarr-leaflet
+yarn add zarr-maps
 ```
 
 ---
@@ -19,7 +19,7 @@ yarn add zarr-leaflet
 
 ```ts
 import L from 'leaflet';
-import { ZarrLayer } from 'zarr-leaflet';
+import { ZarrLayer } from '../../../dist';
 
 const map = L.map('map', {
   center: [36.1, -5.4],
@@ -61,7 +61,7 @@ This:
   />
 </div>
 
-> Example of visualizing a Zarr dataset in a Leaflet map using zarr-leaflet.
+> Example of visualizing a Zarr dataset in a Leaflet map using zarr-maps.
 > You can dynamically change time slices, colormaps, and scale ranges.
 
 ---

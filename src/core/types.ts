@@ -15,7 +15,6 @@
 
 import { allColorScales } from './jsColormaps';
 import * as zarr from 'zarrita';
-import ndarray from 'ndarray';
 
 /* -------------------------------------------------------------------------- */
 /*                             BASIC DATA STRUCTURES                          */
@@ -83,30 +82,6 @@ export interface DimensionNamesProps {
  */
 export interface DimIndicesProps {
   [key: string]: { name: string; index: number; array: zarr.Array<any> | null };
-}
-
-/* -------------------------------------------------------------------------- */
-/*                            VISUALIZATION OPTIONS                           */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Configuration for a 2D raster (image) layer visualization.
- */
-export interface LayerOptions {
-  id: string;
-  url: string;
-  variable: string;
-  crs?: CRS | null;
-  tileSize?: number;
-  maxZoom?: number;
-  scale?: [number, number];
-  opacity?: number;
-  colormap?: ColorMapName;
-  selectors?: { [key: string]: ZarrSelectorsProps };
-  zarrVersion?: 2 | 3;
-  dimensionNames?: DimensionNamesProps;
-  noDataMin?: number;
-  noDataMax?: number;
 }
 
 /**

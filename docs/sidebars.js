@@ -2,7 +2,7 @@ module.exports = {
   tutorialSidebar: [
     {
       type: 'category',
-      label: 'zarr-leaflet',
+      label: 'zarr-maps',
       collapsed: false,
       collapsible: false,
       link: { type: 'doc', id: 'index' },

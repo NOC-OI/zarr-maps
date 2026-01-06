@@ -16,7 +16,7 @@ import {
 
 import { LEAFLET_VIEW, LEAFLET_ZOOM } from '../../lib/map-layers/utils';
 
-export function MapHome() {
+export function MapOL() {
   const {
     selectedLayers,
     setSelectedLayers,
@@ -34,11 +34,11 @@ export function MapHome() {
     (node: HTMLDivElement | null) => {
       if (!node) return;
       if (mapRef.current) return;
-
       const map = L.map(node, {
         zoomControl: true,
         attributionControl: false
       });
+      map.zoomControl.setPosition('topright');
 
       L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
