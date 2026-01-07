@@ -1,4 +1,4 @@
-import type { BoundsProps, ZarrSelectorsProps } from 'zarr-maps';
+import type { BoundsProps, ZarrSelectors } from 'zarr-maps';
 import type { LeafletLayerOptions } from 'zarr-maps/leaflet';
 import type { OLLayerOptions } from 'zarr-maps/ol';
 
@@ -21,7 +21,7 @@ export interface TitilerOptions {
   scale?: [number, number];
   colormap?: string;
   opacity?: number;
-  selectors?: { [key: string]: ZarrSelectorsProps };
+  selectors?: ZarrSelectors;
 }
 
 export interface FlashMessageType {

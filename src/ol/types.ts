@@ -2,7 +2,7 @@
 /*                            VISUALIZATION OPTIONS                           */
 /* -------------------------------------------------------------------------- */
 
-import { ColorMapName, CRS, DimensionNamesProps, ZarrSelectorsProps } from '../core';
+import { ColorMapName, CRS, DimensionNamesProps, ZarrSelectors } from '../core';
 
 /**
  * Configuration for a 2D raster (image) layer visualization in OpenLayers.
@@ -17,7 +17,7 @@ export interface OLLayerOptions {
   scale?: [number, number];
   opacity?: number;
   colormap?: ColorMapName;
-  selectors?: { [key: string]: ZarrSelectorsProps };
+  selectors?: ZarrSelectors;
   zarrVersion?: 2 | 3;
   dimensionNames?: DimensionNamesProps;
   noDataMin?: number;

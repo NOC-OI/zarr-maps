@@ -5,37 +5,20 @@ sidebar_position: 0
 slug: /
 ---
 
-# zarr-maps
+# Zarr-maps
 
-**Leaflet and OpenLayers providers for interactive 2D visualization of environmental and atmospheric data stored in Zarr.**
+**Leaflet and OpenLayers layers for interactive 2D visualization of geospatial data stored in Zarr format.**
 
 - **Demo:** https://noc-oi.github.io/zarr-maps/
 - **GitHub:** https://github.com/NOC-OI/zarr-maps
 
-zarr-maps enables **direct, client-side visualization of scientific datasets** stored in the [Zarr](https://zarr.dev) format. No preprocessing. No tile servers. No backend.
+Zarr-maps enables **direct, client-side visualization of scientific datasets** stored in the [Zarr](https://zarr.dev) format. No preprocessing. No tile servers. No backend.
 
-It provides a set of **Leaflet and OpenLayers data providers** that stream and render multidimensional geospatial datasets directly from HTTP/S3/GCS object storage.
+It provides **Leaflet and OpenLayers layers** that stream and render multidimensional geospatial datasets directly from HTTP/S3/GCS object storage.
 
-## Screenshots
+![Zarr-maps Demo Screenshot](../assets/demo-interaction.gif)
 
-<div style={{ maxWidth: "800px", margin: "0 auto" }}>
-  <video
-    src="https://github.com/NOC-OI/zarr-maps/releases/download/0.1.0/cube_velocitycube.mp4"
-    loop
-    controls
-    muted
-    style={{ width: "100%", borderRadius: "8px" }}
-  />
-</div>
-<div style={{ maxWidth: "800px", margin: "0 auto" }}>
-  <video
-    src="https://github.com/NOC-OI/zarr-maps/releases/download/0.1.0/layer_provider.mp4"
-    loop
-    controls
-    muted
-    style={{ width: "100%", borderRadius: "8px" }}
-  />
-</div>
+> Example of visualizing a Zarr dataset in a Leaflet map using zarr-maps. You can dynamically change time slices, colormaps, and scale ranges.
 
 ---
 
@@ -68,7 +51,7 @@ Zarr Store (HTTP / S3 / GCS)
 ↓
 zarrita.js (Zarr client)
 ↓
-zarr-maps Providers
+Zarr-maps Providers
 ↓
 Leaflet (WebGL)
 ↓
@@ -80,10 +63,11 @@ Leaflet (WebGL)
 
 ## Acknowledgements
 
-Built with:
+This tool is built with:
 
 - [Leaflet](https://leafletjs.com/)
-- [zarrita.js](https://zarrita.dev/)
-- [ndpyramid](https://github.com/carbonplan/ndpyramid)
+- [OpenLayers](https://openlayers.org/)
+- [Zarrita](https://zarrita.dev/)
+- [jscolormaps](https://github.com/timothygebhard/js-colormaps)
 
-**Developed at the `National Oceanography Centre (NOC)` as part of the `Atlantis` project.**
+This work is part of the [Atlantis project](https://atlantis.ac.uk/), a UK initiative supporting long-term ocean observations and marine science in the Atlantic. The project is led by the [National Oceanography Centre (NOC)](https://noc.ac.uk/).

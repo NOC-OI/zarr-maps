@@ -143,7 +143,7 @@ export interface LeafletLayerOptions {
   tileSize?: number; // Leaflet tile size (default 256)
   maxZoom?: number; // Max zoom level
   dimensionNames?: DimensionNamesProps; // Custom dimension names. If not provided, defaults will be used or identified automatically based on CF conventions.
-  selectors?: Record<string, ZarrSelectorsProps>; // Initial dimension slices
+  selectors?: ZarrSelectors; // Initial dimension slices
   zarrVersion?: 2 | 3; // Zarr version (auto-detected if not set)
   crs?: 'EPSG:4326' | 'EPSG:3857'; // Force CRS (auto-detected if not set)
   noDataMin?: number; // Custom no-data minimum value. Overrides _FillValue/missing_value.
@@ -164,7 +164,7 @@ export interface OLLayerOptions {
   tileSize?: number; // Leaflet tile size (default 256)
   maxZoom?: number; // Max zoom level
   dimensionNames?: DimensionNamesProps; // Custom dimension names. If not provided, defaults will be used or identified automatically based on CF conventions.
-  selectors?: Record<string, ZarrSelectorsProps>; // Initial dimension slices
+  selectors?: ZarrSelectors; // Initial dimension slices
   zarrVersion?: 2 | 3; // Zarr version (auto-detected if not set)
   crs?: 'EPSG:4326' | 'EPSG:3857'; // Force CRS (auto-detected if not set)
   noDataMin?: number; // Custom no-data minimum value. Overrides _FillValue/missing_value.
@@ -285,7 +285,7 @@ map.addLayer(zarrLayer);
 zarrLayer.updateStyle({ colormap: 'plasma' });
 ```
 
-The full list of supported colormaps is available in the [Colormaps section](../api/type-aliases/ColorMapName.md).
+The full list of supported colormaps is available in the [Colormaps section](api/index/type-aliases/ColorMapName.md).
 
 - scale range
 

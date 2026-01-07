@@ -4,12 +4,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Docs](https://img.shields.io/badge/docs-online-blue)](https://noc-oi.github.io/zarr-maps/docs)
 
-**Leaflet and OpenLayers layers for interactive 2D visualization of environmental geospatial data stored in Zarr.**
+**Leaflet and OpenLayers layers for interactive 2D visualization of geospatial data stored in Zarr format.**
 
 - Documentation: [https://noc-oi.github.io/zarr-maps/docs](https://noc-oi.github.io/zarr-maps/docs)
 - Demo: [https://noc-oi.github.io/zarr-maps/](https://noc-oi.github.io/zarr-maps/)
 
----
+<br/>
+
+![Zarr-maps Demo Screenshot](docs/assets/demo-interaction.gif)
+
+> Example of visualizing a Zarr dataset in a Leaflet map using zarr-maps. You can dynamically change time slices, colormaps, and scale ranges.
 
 ## Overview
 
@@ -161,6 +165,8 @@ To use your own Zarr datasets, modify the demo layer config (example path may va
 ## DEVELOPMENT
 
 For more details on how to contribute to the development of this toolkit, please refer to the [DEV-README.md](DEV-README.md) file.
+
+---
 
 ## Acknowledgements
 

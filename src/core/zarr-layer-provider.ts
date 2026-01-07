@@ -21,9 +21,9 @@ import type {
   DimIndicesProps,
   XYLimits,
   ZarrLevelMetadata,
-  ZarrSelectorsProps,
   DimensionValues,
-  BoundsProps
+  BoundsProps,
+  ZarrSelectors
 } from './types';
 import type { LeafletLayerOptions } from '../leaflet/types';
 import type { OLLayerOptions } from '../ol/types';
@@ -33,7 +33,7 @@ import type { OLLayerOptions } from '../ol/types';
  */
 export class ZarrLayerProvider {
   public dimensionValues: DimensionValues = {};
-  public selectors: { [key: string]: ZarrSelectorsProps } = {};
+  public selectors: ZarrSelectors = {};
   public crs: CRS | null = null;
 
   private url: string;
@@ -144,7 +144,7 @@ export class ZarrLayerProvider {
     return true;
   }
 
-  updateSelectors(selectors: { [key: string]: ZarrSelectorsProps }): boolean {
+  updateSelectors(selectors: ZarrSelectors): boolean {
     let changed = false;
     for (const k of Object.keys(selectors ?? {})) {
       if (
@@ -254,7 +254,7 @@ export class ZarrLayerProvider {
     }
   }
 
-  private computeSelectorHash(selector: { [key: string]: ZarrSelectorsProps }): string {
+  private computeSelectorHash(selector: ZarrSelectors): string {
     const sortKeys = (value: unknown): unknown => {
       if (Array.isArray(value) || value === null) return value;
       if (typeof value !== 'object') return value;

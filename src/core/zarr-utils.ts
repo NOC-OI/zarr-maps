@@ -13,7 +13,6 @@
 
 import * as zarr from 'zarrita';
 import {
-  type ZarrSelectorsProps,
   type ZarrLevelMetadata,
   type DimensionNamesProps,
   type XYLimitsProps,
@@ -21,7 +20,8 @@ import {
   type DataSliceProps,
   type DimIndicesProps,
   type SliceArgs,
-  DimensionValues
+  DimensionValues,
+  type ZarrSelectors
 } from './types';
 import { decodeCFTime } from './decodeCFTime';
 import { DIMENSION_ALIASES_DEFAULT, CF_MAPPINGS } from './constants';
@@ -97,18 +97,18 @@ export function identifyDimensionIndices(
  * @param shape               Full array shape.
  * @param dataSlice           Pixel-space slice ranges `{ startX, endX, startY, endY, startElevation?, endElevation? }` (see {@link DataSliceProps}).
  * @param dimIndices          Mapping of dimension names → indices as returned by `identifyDimensionIndices` (see {@link DimIndicesProps}).
- * @param selectors           User-provided selection map (lat/lon/elevation/time/etc.). See {@link ZarrSelectorsProps}.
+ * @param selectors           User-provided selection map (lat/lon/elevation/time/etc.). See {@link ZarrSelectors}.
  *
  * @returns An object containing:
  *   - `sliceArgs`: Array of slice objects/indexes matching the array's dimensions. See {@link SliceArgs}.
  *   - `dimensionValues`: Possibly updated coordinate arrays.
- *   - `selectors`: Updated index-based selectors. See {@link ZarrSelectorsProps}.
+ *   - `selectors`: Updated index-based selectors. See {@link ZarrSelectors}.
  */
 export function calculateSliceArgs(
   shape: number[],
   dataSlice: DataSliceProps,
   dimIndices: DimIndicesProps,
-  selectors: { [key: string]: ZarrSelectorsProps }
+  selectors: ZarrSelectors
 ): SliceArgs {
   const sliceArgs: SliceArgs = new Array(shape.length).fill(0);
   for (const dimName of Object.keys(dimIndices)) {

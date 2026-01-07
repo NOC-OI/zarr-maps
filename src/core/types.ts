@@ -30,6 +30,11 @@ import * as zarr from 'zarrita';
  * { selected: [0, 10], type: 'index' }
  * ```
  */
+
+export interface ZarrSelectors {
+  [key: string]: ZarrSelectorsProps;
+}
+
 export interface ZarrSelectorsProps {
   /** Selected index, value, or range. */
   selected: number | string | [number, number];

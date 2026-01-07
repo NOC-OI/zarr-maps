@@ -31,10 +31,18 @@ export function MapToggle() {
           title="Toggle Map Library (Leaflet / OpenLayers)"
         >
           <div className="flex items-center justify-center">
-            <img src="/leaflet-logo.png" alt="Leaflet Icon" className="ml-0 h-7 w-7 mt-2" />
+            <img
+              src={`${import.meta.env.BASE_URL}leaflet-logo.png`}
+              alt="Leaflet Icon"
+              className="ml-0 h-7 w-7 mt-1.5"
+            />
           </div>
           <div className="flex items-center justify-center">
-            <img src="/ol-logo.png" alt="OpenLayers Icon" className="h-7 w-7 mt-2" />
+            <img
+              src={`${import.meta.env.BASE_URL}ol-logo.png`}
+              alt="OpenLayers Icon"
+              className="h-7 w-7 mt-1.5"
+            />
           </div>
         </div>
       </label>

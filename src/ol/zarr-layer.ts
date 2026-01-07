@@ -2,7 +2,7 @@ import TileLayer from 'ol/layer/Tile';
 import XYZ from 'ol/source/XYZ';
 import { get as getProjection, transformExtent, ProjectionLike } from 'ol/proj';
 import type ImageTile from 'ol/ImageTile';
-import type { ColorMapName, ZarrSelectorsProps } from '../core/types';
+import type { ColorMapName, ZarrSelectors } from '../core/types';
 import type { OLLayerOptions, ZarrImageElement } from './types';
 import { ZarrLayerProvider } from '../core/zarr-layer-provider';
 import { TileCoord } from 'ol/tilecoord';
@@ -18,8 +18,6 @@ import { TileCoord } from 'ol/tilecoord';
  */
 export class ZarrLayer extends TileLayer<XYZ> {
   public provider: ZarrLayerProvider;
-  private options: OLLayerOptions;
-  private tileSize: number;
   private mapProjection: ProjectionLike;
 
   constructor(options: OLLayerOptions) {
@@ -43,9 +41,6 @@ export class ZarrLayer extends TileLayer<XYZ> {
 
     this.provider = provider;
     this.mapProjection = options.crs ?? 'EPSG:3857';
-
-    this.options = options;
-    this.tileSize = tileSize;
   }
 
   /**
@@ -101,7 +96,7 @@ export class ZarrLayer extends TileLayer<XYZ> {
    * Update the selectors used for slicing the Zarr dataset.
    * @param selectors - New selectors to apply.
    */
-  updateSelectors(selectors: { [key: string]: ZarrSelectorsProps }) {
+  updateSelectors(selectors: ZarrSelectors) {
     const changed = this.provider.updateSelectors(selectors);
 
     if (changed) {

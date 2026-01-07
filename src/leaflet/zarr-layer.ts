@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import type { LeafletLayerOptions } from './types';
-import type { ColorMapName, ZarrSelectorsProps } from '../core/types';
+import type { ColorMapName, ZarrSelectors } from '../core/types';
 import { ZarrLayerProvider } from '../core/zarr-layer-provider';
 
 /**
@@ -10,7 +10,7 @@ import { ZarrLayerProvider } from '../core/zarr-layer-provider';
  * This class extends `L.GridLayer` to create a custom tile layer that fetches
  * and renders tiles from a Zarr data source using the `ZarrLayerProvider`.
  *
- * @param options - Configuration options for the Zarr layer. Instance of {@link LeafletLayerOptions} & {@link L.GridLayerOptions}.
+ * @param options - Configuration options for the Zarr layer. Instance of {@link LeafletLayerOptions}.
  */
 export class ZarrLayer extends L.GridLayer {
   public provider: ZarrLayerProvider;
@@ -64,7 +64,7 @@ export class ZarrLayer extends L.GridLayer {
    * Update the selectors used for slicing the Zarr dataset.
    * @param selectors - New selectors to apply.
    */
-  updateSelectors(selectors: { [key: string]: ZarrSelectorsProps }) {
+  updateSelectors(selectors: ZarrSelectors) {
     const changed = this.provider.updateSelectors(selectors);
     if (changed) this.redraw();
   }

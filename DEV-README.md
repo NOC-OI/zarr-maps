@@ -97,10 +97,8 @@ You can change:
 
 - Dataset URLs
 - Variable names (`temperature`, `uo`, `vo`, etc.)
-- Bounds
 - Colormaps
-- Providers:
-  - dataType "zarr-maps" uses provider `ZarrLayerProvider`
+- Other layer options
 
 This file is intentionally simple to help you experiment quickly.
 
@@ -170,12 +168,6 @@ This will check all TypeScript types, eslint rules, and prettier formatting. And
 ## 5.4. Updating Documentation
 
 Docs live under: `docs/`
-
-Examples:
-
-- Providers → `docs/providers/*.md`
-- Getting Started → `docs/intro.md`
-- Data preparation → `docs/data.md`
 
 To test docs locally:
 
