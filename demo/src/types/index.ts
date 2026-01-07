@@ -1,5 +1,6 @@
-import type { BoundsProps, ZarrSelectorsProps } from 'zarr-leaflet';
-import type { LayerOptions } from 'zarr-leaflet';
+import type { BoundsProps, ZarrSelectorsProps } from 'zarr-maps';
+import type { LeafletLayerOptions } from 'zarr-maps/leaflet';
+import type { OLLayerOptions } from 'zarr-maps/ol';
 
 export interface keyable {
   [key: string]: any;
@@ -46,11 +47,11 @@ export interface LayerNamesType {
 }
 
 export interface DataInfoType {
-  dataType: 'zarr-leaflet' | 'zarr-titiler';
+  dataType: 'zarr-maps' | 'zarr-titiler';
   dataDescription: [string, string];
   bbox?: BoundsProps;
   content?: string;
-  params: LayerOptions | TitilerOptions;
+  params: LeafletLayerOptions | OLLayerOptions | TitilerOptions;
 }
 
 export interface LayersLegendType {

@@ -1,6 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+
+import Map from 'ol/Map';
+import View from 'ol/View';
+import TileLayer from 'ol/layer/Tile';
+import XYZ from 'ol/source/XYZ';
+
+import 'ol/ol.css';
 
 import { useContextHandle } from '../../application/use-context';
 import type { keyable } from '../../types';
@@ -15,6 +20,9 @@ import {
 } from './_actions/layers-handle';
 
 import { LEAFLET_VIEW, LEAFLET_ZOOM } from '../../lib/map-layers/utils';
+import { fromLonLat } from 'ol/proj';
+import Zoom from 'ol/control/Zoom';
+import { defaults as defaultControls } from 'ol/control';
 
 export function MapOL() {
   const {
@@ -26,7 +34,7 @@ export function MapOL() {
     listLayers
   } = useLayersManagementHandle();
 
-  const mapRef = useRef<L.Map | null>(null);
+  const mapRef = useRef<Map | null>(null);
 
   const { setFlashMessage, setLoading } = useContextHandle();
 
@@ -34,21 +42,28 @@ export function MapOL() {
     (node: HTMLDivElement | null) => {
       if (!node) return;
       if (mapRef.current) return;
-      const map = L.map(node, {
-        zoomControl: true,
-        attributionControl: false
+
+      const imagery = new TileLayer({
+        source: new XYZ({
+          url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          attributions: 'Tiles © Esri',
+          maxZoom: 19
+        })
       });
-      map.zoomControl.setPosition('topright');
 
-      L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        {
-          maxZoom: 19,
-          attribution: 'Tiles © Esri'
-        }
-      ).addTo(map);
-
-      map.setView(LEAFLET_VIEW, LEAFLET_ZOOM);
+      const map = new Map({
+        target: node,
+        layers: [imagery],
+        view: new View({
+          center: fromLonLat([LEAFLET_VIEW[1], LEAFLET_VIEW[0]]) as any,
+          zoom: LEAFLET_ZOOM
+        }),
+        controls: defaultControls({ zoom: false, attribution: false }).extend([
+          new Zoom({
+            className: 'ol-zoom ol-zoom-top-right'
+          })
+        ])
+      });
 
       mapRef.current = map;
       setLoading(false);
@@ -62,7 +77,7 @@ export function MapOL() {
     const error = await generateSelectedLayer(
       actualLayer,
       selectedLayers,
-      mapRef as React.RefObject<L.Map>,
+      mapRef as React.RefObject<Map>,
       setSelectedLayers
     );
 
@@ -72,6 +87,7 @@ export function MapOL() {
         content: error.error
       });
     }
+
     setLayerAction('');
     setLoading(false);
   }
@@ -115,7 +131,7 @@ export function MapOL() {
   useEffect(() => {
     return () => {
       if (mapRef.current) {
-        mapRef.current.remove();
+        mapRef.current.setTarget(undefined);
         mapRef.current = null;
       }
     };

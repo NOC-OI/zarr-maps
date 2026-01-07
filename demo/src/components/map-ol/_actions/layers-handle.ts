@@ -2,33 +2,50 @@ import type React from 'react';
 import { DEFAULT_BOUNDS } from '../../../lib/map-layers/utils';
 import type { LayersJsonType, SelectedLayersType } from '../../../types';
 import { generateSelectedLayer, updateSelectedLayersWithDimensions } from './get-layers';
-import { DEFAULT_OPACITY } from '../../../dist';
+import { DEFAULT_OPACITY } from 'zarr-maps';
 
-export function getBoundsFromBBox(bbox: number[] | null): [[number, number], [number, number]] {
-  if (!bbox || bbox.length !== 4) return DEFAULT_BOUNDS;
-  const sumValue = 0.1;
-  bbox[0] = bbox[0] - sumValue < -180 ? -180 : bbox[0] - sumValue;
-  bbox[1] = bbox[1] - sumValue < -90 ? -90 : bbox[1] - sumValue;
-  bbox[2] = bbox[2] + sumValue > 180 ? 180 : bbox[2] + sumValue;
-  bbox[3] = bbox[3] + sumValue > 90 ? 90 : bbox[3] + sumValue;
-  return [
-    [bbox[0], bbox[1]],
-    [bbox[2], bbox[3]]
-  ];
+import type Map from 'ol/Map';
+import type BaseLayer from 'ol/layer/Base';
+import { transformExtent } from 'ol/proj';
+import type { ZarrLayer } from 'zarr-maps/ol';
+
+type OLMapRef = React.RefObject<Map>;
+
+export function getExtentFromBBox(
+  bbox: number[] | null,
+  paddingDegrees = 0.1,
+  from = 'EPSG:4326',
+  to = 'EPSG:3857'
+): [number, number, number, number] {
+  if (!bbox || bbox.length !== 4) {
+    const [[minLon, minLat], [maxLon, maxLat]] = DEFAULT_BOUNDS;
+    return transformExtent([minLon, minLat, maxLon, maxLat], from, to) as [
+      number,
+      number,
+      number,
+      number
+    ];
+  }
+
+  const b = [...bbox];
+
+  b[0] = b[0] - paddingDegrees < -180 ? -180 : b[0] - paddingDegrees;
+  b[1] = b[1] - paddingDegrees < -90 ? -90 : b[1] - paddingDegrees;
+  b[2] = b[2] + paddingDegrees > 180 ? 180 : b[2] + paddingDegrees;
+  b[3] = b[3] + paddingDegrees > 90 ? 90 : b[3] + paddingDegrees;
+
+  return transformExtent([b[0], b[1], b[2], b[3]], from, to) as [number, number, number, number];
 }
 
-export function findLayerById(map: L.Map, id: string): any | null {
-  let found: any | null = null;
-  map.eachLayer((layer: any) => {
-    if (layer?.options?.id === id) found = layer;
-  });
-  return found;
+export function findLayerById(map: Map, id: string): BaseLayer | ZarrLayer | null {
+  const layers = map.getLayers().getArray() as BaseLayer[];
+  return layers.find(l => (l as any).get?.('id') === id) ?? null;
 }
 
 export function removeLayerFromMap(
   actualLayer: string,
   listLayers: LayersJsonType,
-  mapRef: React.RefObject<L.Map>
+  mapRef: OLMapRef
 ): void {
   const map = mapRef.current;
   if (!map) return;
@@ -46,14 +63,14 @@ export function removeLayerFromMap(
   map.removeLayer(layer);
 
   if (layerInfo.dataType === 'zarr-maps') {
-    layer.provider?.destroy?.();
+    (layer as ZarrLayer).provider?.destroy?.();
   }
 }
 
 export async function changeMapOpacity(
   actualLayer: string,
   selectedLayers: SelectedLayersType,
-  mapRef: React.RefObject<L.Map>
+  mapRef: OLMapRef
 ) {
   const map = mapRef.current;
   if (!map) return;
@@ -87,7 +104,7 @@ export async function changeMapOpacity(
 export async function changeMapColors(
   actualLayer: string,
   selectedLayers: SelectedLayersType,
-  mapRef: React.RefObject<L.Map>
+  mapRef: OLMapRef
 ) {
   const map = mapRef.current;
   if (!map) return;
@@ -102,7 +119,7 @@ export async function changeMapDimensions(
   actualLayer: string,
   selectedLayers: SelectedLayersType,
   setSelectedLayers: React.Dispatch<React.SetStateAction<SelectedLayersType>>,
-  mapRef: React.RefObject<L.Map>
+  mapRef: OLMapRef
 ) {
   const map = mapRef.current;
   if (!map) return;
@@ -117,7 +134,7 @@ export async function changeMapDimensions(
       layer.updateSelectors(layerInfo.params.selectors);
     } else if (layer.provider?.updateSelectors) {
       layer.provider.updateSelectors(layerInfo.params.selectors);
-      layer.redraw?.();
+      layer.changed?.();
     }
 
     const provider = layer.provider;

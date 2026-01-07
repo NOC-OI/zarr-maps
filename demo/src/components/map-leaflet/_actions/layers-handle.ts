@@ -2,7 +2,7 @@ import type React from 'react';
 import { DEFAULT_BOUNDS } from '../../../lib/map-layers/utils';
 import type { LayersJsonType, SelectedLayersType } from '../../../types';
 import { generateSelectedLayer, updateSelectedLayersWithDimensions } from './get-layers';
-import { DEFAULT_OPACITY } from '../../../../../dist';
+import { DEFAULT_OPACITY } from 'zarr-maps';
 
 export function getBoundsFromBBox(bbox: number[] | null): [[number, number], [number, number]] {
   if (!bbox || bbox.length !== 4) return DEFAULT_BOUNDS;

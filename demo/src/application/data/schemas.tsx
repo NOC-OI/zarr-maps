@@ -8,7 +8,7 @@ export interface ZarrFormProps {
 }
 
 const baseLayerSchema = z.object({
-  dataType: z.enum(['zarr-leaflet']),
+  dataType: z.enum(['zarr-maps']),
   dataDescription: z.tuple([z.string(), z.string()]),
   content: z.string()
 });
@@ -16,15 +16,13 @@ const baseLayerSchema = z.object({
 const zarrVersionSchema = z.union([z.literal(2), z.literal(3)]);
 const crsSchema = z.enum(['EPSG:4326', 'EPSG:3857']);
 
-const zarrLeafletParams = z
+const zarrMapsParameters = z
   .object({
-    url: z.string().url(),
+    url: z.url(),
     variable: z.string(),
     crs: crsSchema.nullable().optional(),
-    tileWidth: z.number().optional(),
-    tileHeight: z.number().optional(),
-    minimumLevel: z.number().optional(),
-    maximumLevel: z.number().optional(),
+    tileSize: z.number().optional(),
+    maxZoom: z.number().optional(),
     scale: z.tuple([z.number(), z.number()]).optional(),
     opacity: z.number().optional(),
     colormap: z.string().optional(),
@@ -37,8 +35,8 @@ const zarrLeafletParams = z
 
 export const layerFormSchema = z.discriminatedUnion('dataType', [
   baseLayerSchema.extend({
-    dataType: z.literal('zarr-leaflet'),
-    params: zarrLeafletParams
+    dataType: z.literal('zarr-maps'),
+    params: zarrMapsParameters
   })
 ]);
 

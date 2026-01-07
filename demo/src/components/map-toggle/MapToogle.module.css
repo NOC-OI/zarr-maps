@@ -3,13 +3,13 @@
     transform: translateX(0);
   }
   100% {
-    transform: translateX(32px);
+    transform: translateX(36px);
   }
 }
 
 @keyframes slide-out {
   0% {
-    transform: translateX(22px);
+    transform: translateX(36px);
   }
   100% {
     transform: translateX(0);
@@ -19,8 +19,8 @@
 .switch {
   position: relative;
   display: inline-block;
-  width: 62px;
-  height: 26px;
+  width: 75px;
+  height: 40px;
   transition: all 0.3s ease-in-out;
   box-shadow: 2px 2px 2px rgba(0, 0, 0, 1);
 }
@@ -53,8 +53,8 @@
 .slider:before {
   position: absolute;
   content: '';
-  height: 24px;
-  width: 26px;
+  height: 38px;
+  width: 36px;
   left: 0px;
   bottom: 0px;
   background-color: rgb(234, 234, 234, 0.5);
@@ -74,9 +74,9 @@ input:checked + .slider_animation:before {
 }
 input:checked + .slider:before {
   animation: slide-in 0.3s ease-in;
-  -webkit-transform: translateX(34px);
-  -ms-transform: translateX(34px);
-  transform: translateX(34px);
+  -webkit-transform: translateX(38px);
+  -ms-transform: translateX(38px);
+  transform: translateX(38px);
 }
 
 .turn {

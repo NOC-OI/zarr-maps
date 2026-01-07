@@ -5,16 +5,16 @@ sidebar_position: 0
 slug: /
 ---
 
-# Zarr-leaflet
+# zarr-maps
 
-**Leaflet providers for interactive 2D and 3D visualization of environmental and atmospheric data stored in Zarr.**
+**Leaflet and OpenLayers providers for interactive 2D visualization of environmental and atmospheric data stored in Zarr.**
 
 - **Demo:** https://noc-oi.github.io/zarr-maps/
 - **GitHub:** https://github.com/NOC-OI/zarr-maps
 
-Zarr-leaflet enables **direct, client-side visualization of scientific datasets** stored in the [Zarr](https://zarr.dev) format. No preprocessing. No tile servers. No backend.
+zarr-maps enables **direct, client-side visualization of scientific datasets** stored in the [Zarr](https://zarr.dev) format. No preprocessing. No tile servers. No backend.
 
-It provides a set of **Leaflet data providers** that stream and render multidimensional geospatial datasets directly from HTTP/S3/GCS object storage.
+It provides a set of **Leaflet and OpenLayers data providers** that stream and render multidimensional geospatial datasets directly from HTTP/S3/GCS object storage.
 
 ## Screenshots
 
@@ -30,15 +30,6 @@ It provides a set of **Leaflet data providers** that stream and render multidime
 <div style={{ maxWidth: "800px", margin: "0 auto" }}>
   <video
     src="https://github.com/NOC-OI/zarr-maps/releases/download/0.1.0/layer_provider.mp4"
-    loop
-    controls
-    muted
-    style={{ width: "100%", borderRadius: "8px" }}
-  />
-</div>
-<div style={{ maxWidth: "800px", margin: "0 auto" }}>
-  <video
-    src="https://github.com/NOC-OI/zarr-maps/releases/download/0.1.0/cube_globe.mp4"
     loop
     controls
     muted

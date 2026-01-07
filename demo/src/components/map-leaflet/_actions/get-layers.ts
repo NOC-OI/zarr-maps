@@ -1,7 +1,6 @@
 import { GetZarrLayer } from '../../../lib/map-layers/addZarrLayer';
 import type { DataInfoType, SelectedLayersType } from '../../../types';
-import { ZarrLayer } from '../../../../../dist/leaflet';
-import { type LeafletLayerOptions } from '../../../../../dist/leaflet/';
+import { ZarrLayer, type LeafletLayerOptions } from 'zarr-maps/leaflet';
 import type React from 'react';
 import { findLayerById } from './layers-handle';
 

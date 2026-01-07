@@ -1,9 +1,4 @@
-import {
-  allColorScales,
-  DEFAULT_COLORMAP,
-  DEFAULT_SCALE,
-  type ColorMapName
-} from '../../../../dist';
+import { allColorScales, DEFAULT_COLORMAP, DEFAULT_SCALE, type ColorMapName } from 'zarr-maps';
 import { useLayersManagementHandle } from '../../application/use-layers';
 import type { LayersLegendType } from '../../types';
 import Slider from '@mui/material/Slider';

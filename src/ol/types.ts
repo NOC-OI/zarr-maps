@@ -5,7 +5,7 @@
 import { ColorMapName, CRS, DimensionNamesProps, ZarrSelectorsProps } from '../core';
 
 /**
- * Configuration for a 2D raster (image) layer visualization.
+ * Configuration for a 2D raster (image) layer visualization in OpenLayers.
  */
 export interface OLLayerOptions {
   id: string;
@@ -22,4 +22,9 @@ export interface OLLayerOptions {
   dimensionNames?: DimensionNamesProps;
   noDataMin?: number;
   noDataMax?: number;
+}
+
+export interface ZarrImageElement extends HTMLImageElement {
+  _zarrKey?: string;
+  _zarrObjectUrl?: string;
 }

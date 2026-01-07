@@ -1,10 +1,10 @@
 import type { LayersJsonType } from '../../types';
 
 export const layersJson: LayersJsonType = {
-  'zarr-leaflet': {
+  'zarr-maps': {
     layerNames: {
       salinity_pyramid_v2: {
-        dataType: 'zarr-leaflet',
+        dataType: 'zarr-maps',
         dataDescription: ['Salinity', ''],
         content:
           'Salinity outputs from NEMO NPD-EORCA1 model. This dataset contains 3D data (time, latitude, longitude) stored in a Zarr v2 format with a multiscale pyramid structure and EPSG:3857 coordinate reference system.',
@@ -17,14 +17,12 @@ export const layersJson: LayersJsonType = {
           crs: undefined,
           opacity: undefined,
           dimensionNames: undefined,
-          tileWidth: undefined,
-          tileHeight: undefined,
-          minZoom: undefined,
+          tileSize: undefined,
           maxZoom: 12
         }
       },
       'temperature-pyramid_v3': {
-        dataType: 'zarr-leaflet',
+        dataType: 'zarr-maps',
         dataDescription: ['Temperature', 'deg C'],
         content:
           'Temperature outputs from NEMO NPD-EORCA1 model. This dataset contains 3D temperature data (time, latitude, longitude) stored in a Zarr v3 format with a multiscale pyramid structure and EPSG:3857 coordinate reference system.',
@@ -37,14 +35,12 @@ export const layersJson: LayersJsonType = {
           crs: undefined,
           opacity: undefined,
           dimensionNames: undefined,
-          tileWidth: undefined,
-          tileHeight: undefined,
-          minZoom: undefined,
+          tileSize: undefined,
           maxZoom: 12
         }
       },
       'temperature-4d_pyramid_v3': {
-        dataType: 'zarr-leaflet',
+        dataType: 'zarr-maps',
         dataDescription: ['Temperature', 'deg C'],
         content:
           'Temperature outputs from NEMO NPD-EORCA025 model. This dataset contains 4D temperature data (time, depth, latitude, longitude) stored in a Zarr v3 format with a multiscale pyramid structure and EPSG:3857 coordinate reference system.',
@@ -57,14 +53,12 @@ export const layersJson: LayersJsonType = {
           crs: undefined,
           opacity: undefined,
           dimensionNames: undefined,
-          tileWidth: undefined,
-          tileHeight: undefined,
-          minZoom: undefined,
+          tileSize: undefined,
           maxZoom: 12
         }
       },
       pressure_florence_v3: {
-        dataType: 'zarr-leaflet',
+        dataType: 'zarr-maps',
         dataDescription: ['Wind Speed', 'm/s'],
         content:
           'Surface pressure data for Hurricane Florence from ERA5 reanalysis. This dataset contains 3D surface pressure data (time, latitude, longitude) stored in a Zarr v3 format and EPSG:4326 coordinate reference system.',
@@ -73,15 +67,13 @@ export const layersJson: LayersJsonType = {
           variable: 'surface_pressure',
           zarrVersion: 3,
           colormap: 'jet',
-          scale: [75000, 104000],
+          scale: [100000, 104000],
           noDataMin: 0,
           noDataMax: 999999,
           crs: undefined,
           opacity: undefined,
           dimensionNames: undefined,
-          tileWidth: undefined,
-          tileHeight: undefined,
-          minZoom: undefined,
+          tileSize: undefined,
           maxZoom: undefined
         }
       }

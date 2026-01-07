@@ -17,9 +17,11 @@ yarn add zarr-maps
 
 ## Basic Example
 
+### 1. Leaflet
+
 ```ts
 import L from 'leaflet';
-import { ZarrLayer } from '../../../dist';
+import { ZarrLayer } from 'zarr-maps/leaflet';
 
 const map = L.map('map', {
   center: [36.1, -5.4],
@@ -45,11 +47,12 @@ zarrLayer.addTo(map);
 
 This:
 
-1. Creates the Leaflet layer
-2. Loads Zarr metadata
-3. Detects CRS
-4. Loads dimension values (time/depth/etc.)
-5. Starts rendering tiles on demand as Leaflet requests them
+1. Creates the Leaflet map
+2. Creates the ZarrLayer with options
+3. Loads Zarr metadata
+4. Detects CRS
+5. Loads dimension values (time/depth/etc.)
+6. Starts rendering tiles on demand as Leaflet requests them
 
 <div style={{ maxWidth: "800px", margin: "0 auto" }}>
   <video
@@ -64,12 +67,94 @@ This:
 > Example of visualizing a Zarr dataset in a Leaflet map using zarr-maps.
 > You can dynamically change time slices, colormaps, and scale ranges.
 
+### 2. OpenLayers
+
+```ts
+import 'ol/ol.css';
+import Map from 'ol/Map';
+import View from 'ol/View';
+import TileLayer from 'ol/layer/Tile';
+import OSM from 'ol/source/OSM';
+import { ZarrLayer } from 'zarr-maps/ol';
+
+const map = new Map({
+  target: 'map',
+  layers: [
+    new TileLayer({
+      source: new OSM()
+    })
+  ],
+  view: new View({
+    center: [0, 0],
+    zoom: 2,
+    projection: 'EPSG:3857'
+  })
+});
+
+const options = {
+  url: 'https://example.com/data.zarr',
+  variable: 'salinity',
+  colormap: 'viridis',
+  scale: [30, 40]
+};
+const zarrLayer = new ZarrLayer(options);
+
+// Load Zarr metadata before adding to map
+await zarrLayer.load();
+map.addLayer(zarrLayer);
+```
+
+This:
+
+1. Creates the OpenLayers map
+2. Creates the ZarrLayer with options
+3. Loads Zarr metadata
+4. Detects CRS
+5. Loads dimension values (time/depth/etc.)
+6. Starts rendering tiles on demand as OpenLayers requests them
+
+<div style={{ maxWidth: "800px", margin: "0 auto" }}>
+  <video
+    src="https://github.com/user-attachments/assets/33fc6dd2-38fa-4b20-a346-0a175f90eba1"
+    loop
+    controls
+    muted
+    style={{ width: "100%", borderRadius: "8px" }}
+  />
+</div>
+
+> Example of visualizing a Zarr dataset in a OpenLayers map using zarr-maps.
+> You can dynamically change time slices, colormaps, and scale ranges.
+
 ---
 
 ## Options
 
+### 1. Leaflet
+
 ```ts
-export interface LayerOptions {
+export interface LeafletLayerOptions {
+  id: string; // Unique layer ID
+  url: string; // Public Zarr store
+  variable: string; // Zarr array name
+  scale?: [number, number]; // Min/max for color scaling
+  colormap?: ColorMapName; // Name from jsColormaps, based on matplotlib colormaps
+  opacity?: number; // Imagery opacity (0–1)
+  tileSize?: number; // Leaflet tile size (default 256)
+  maxZoom?: number; // Max zoom level
+  dimensionNames?: DimensionNamesProps; // Custom dimension names. If not provided, defaults will be used or identified automatically based on CF conventions.
+  selectors?: Record<string, ZarrSelectorsProps>; // Initial dimension slices
+  zarrVersion?: 2 | 3; // Zarr version (auto-detected if not set)
+  crs?: 'EPSG:4326' | 'EPSG:3857'; // Force CRS (auto-detected if not set)
+  noDataMin?: number; // Custom no-data minimum value. Overrides _FillValue/missing_value.
+  noDataMax?: number; // Custom no-data maximum value. Overrides _FillValue/missing_value.
+}
+```
+
+### 2. OpenLayers
+
+```ts
+export interface OLLayerOptions {
   id: string; // Unique layer ID
   url: string; // Public Zarr store
   variable: string; // Zarr array name

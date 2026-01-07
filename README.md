@@ -1,10 +1,10 @@
-# Zarr-Leaflet Visualization Toolkit
+# Zarr-maps Visualization Toolkit
 
 [![NPM Version](https://img.shields.io/npm/v/zarr-maps)](https://www.npmjs.com/package/zarr-maps)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Docs](https://img.shields.io/badge/docs-online-blue)](https://noc-oi.github.io/zarr-maps/docs)
 
-**Leaflet layers for interactive 2D visualization of environmental geospatial data stored in Zarr.**
+**Leaflet and OpenLayers layers for interactive 2D visualization of environmental geospatial data stored in Zarr.**
 
 - Documentation: [https://noc-oi.github.io/zarr-maps/docs](https://noc-oi.github.io/zarr-maps/docs)
 - Demo: [https://noc-oi.github.io/zarr-maps/](https://noc-oi.github.io/zarr-maps/)
@@ -13,13 +13,11 @@
 
 ## Overview
 
-The **zarr-maps Visualization Toolkit** provides **Leaflet GridLayer-based rendering** for n-dimensional datasets stored in the [Zarr](https://zarr.dev) format — streamed directly from cloud object stores (HTTP/S3/GCS) without preprocessing, conversion, or a backend server.
+The **Zarr-maps Visualization Toolkit** provides **Leaflet GridLayer-based rendering** and **OpenLayers layer rendering** for n-dimensional datasets stored in the [Zarr](https://zarr.dev) format. It is streamed directly from cloud object stores (HTTP/S3/GCS) without preprocessing, conversion, or a backend server.
 
-It is designed for fast, on-demand raster visualization in Leaflet using **GPU-accelerated WebGL color-mapping**.
+It is designed for fast, on-demand raster visualization in Leaflet and OpenLayers using **GPU-accelerated WebGL color-mapping**.
 
----
-
-## Features
+### Features
 
 - **Zarr v2 and v3 compatibility**
   Read datasets from any Zarr store, including public cloud object storage.
@@ -29,6 +27,9 @@ It is designed for fast, on-demand raster visualization in Leaflet using **GPU-a
 
 - **Leaflet-native tiling**
   Uses `L.GridLayer` to request tiles based on current map view.
+
+- **OpenLayers-native tiling**
+  Uses `ol/layer/Tile` to request tiles based on current map view.
 
 - **CRS-aware**
   Supports EPSG:4326 (Geographic) and EPSG:3857 (Web Mercator) with automatic detection.
@@ -55,11 +56,13 @@ npm install zarr-maps
 
 ---
 
-## Quick start (Leaflet)
+## Quick start
+
+### Leaflet Example
 
 ```ts
 import L from 'leaflet';
-import { ZarrLayer } from '../../../dist';
+import { ZarrLayer } from 'zarr-maps/leaflet';
 
 const map = L.map('map', {
   center: [36.1, -5.4],
@@ -86,16 +89,55 @@ await zarrLayer.load();
 zarrLayer.addTo(map);
 ```
 
+### OpenLayers Example
+
+```ts
+import 'ol/ol.css';
+import Map from 'ol/Map';
+import View from 'ol/View';
+import { Tile as TileLayer } from 'ol/layer';
+import { OSM } from 'ol/source/OSM';
+import { ZarrLayer } from 'zarr-maps/ol';
+
+const map = new Map({
+  target: 'map',
+  layers: [
+    new TileLayer({
+      source: new OSM()
+    })
+  ],
+  view: new View({
+    center: [0, 0],
+    zoom: 2
+  })
+});
+
+const zarrLayer = new ZarrLayer({
+  url: 'https://example.com/my.zarr',
+  variable: 'temperature',
+  colormap: 'plasma',
+  scale: [270, 310],
+  selectors: {
+    time: { type: 'index', selected: 0 }
+  }
+});
+
+// Await readiness before adding to map
+await zarrLayer.load();
+map.addLayer(zarrLayer);
+```
+
 ---
 
 ## Architecture
 
-The toolkit provides two key Leaflet-facing components:
+The toolkit provides two key layers components for Leaflet and OpenLayers, backed by a shared data provider that handles Zarr access and WebGL rendering:
 
-| Component           | Purpose                 | Description                                                                     |
-| ------------------- | ----------------------- | ------------------------------------------------------------------------------- |
-| `ZarrLayer`         | Leaflet layer           | A `L.GridLayer` that Leaflet controls (tile lifecycle, zoom, redraw).           |
-| `ZarrLayerProvider` | Data + rendering engine | Opens Zarr, loads metadata/dimensions, fetches slices, renders tiles via WebGL. |
+| Component                  | Purpose                 | Description                                                                     |
+| -------------------------- | ----------------------- | ------------------------------------------------------------------------------- |
+| `ZarrLayer` for Leaflet    | Leaflet layer           | A `L.GridLayer` that Leaflet controls (tile lifecycle, zoom, redraw).           |
+| `ZarrLayer` for OpenLayers | OpenLayers layer        | An `ol/layer/Tile` that OpenLayers controls (tile lifecycle, zoom, redraw).     |
+| `ZarrLayerProvider`        | Data + rendering engine | Opens Zarr, loads metadata/dimensions, fetches slices, renders tiles via WebGL. |
 
 ---
 
@@ -125,6 +167,7 @@ For more details on how to contribute to the development of this toolkit, please
 This tool is built with:
 
 - [Leaflet](https://leafletjs.com/)
+- [OpenLayers](https://openlayers.org/)
 - [Zarrita](https://zarrita.dev/)
 - [jscolormaps](https://github.com/timothygebhard/js-colormaps)
 

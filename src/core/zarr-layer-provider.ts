@@ -28,10 +28,6 @@ import type {
 import type { LeafletLayerOptions } from '../leaflet/types';
 import type { OLLayerOptions } from '../ol/types';
 
-/* -------------------------------------------------------------------------- */
-/*                           ZARR LAYER PROVIDER                             */
-/* -------------------------------------------------------------------------- */
-
 /**
  * Provides Zarr dataset access and rendering capabilities for map layers.
  */
@@ -100,7 +96,7 @@ export class ZarrLayerProvider {
 
     this.crs = options.crs || null;
     this.tileSize = options.tileSize ?? 256;
-    this.maxZoom = options.maxZoom ?? options.maxZoom ?? 8;
+    this.maxZoom = options.maxZoom ?? options.maxZoom ?? 12;
 
     this.selectors = options.selectors || {};
     this.noDataMin = options.noDataMin;
@@ -159,7 +155,15 @@ export class ZarrLayerProvider {
         changed = true;
       }
     }
+
+    if (changed) {
+      this.selectorHash = this.computeSelectorHash(this.selectors);
+    }
     return changed;
+  }
+
+  public get cacheKey(): string {
+    return this.selectorHash;
   }
 
   get ready() {
@@ -341,7 +345,6 @@ export class ZarrLayerProvider {
     gl.bindVertexArray(this.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quadVbo);
 
-    // Allocate once (24 floats = 6 vertices * (pos.xy + uv.xy) = 6*4 = 24 floats)
     gl.bufferData(gl.ARRAY_BUFFER, 24 * 4, gl.DYNAMIC_DRAW);
 
     gl.enableVertexAttribArray(this.attribs.a_position);

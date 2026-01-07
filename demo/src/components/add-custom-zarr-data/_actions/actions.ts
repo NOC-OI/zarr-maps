@@ -2,7 +2,7 @@ import type { LayerFormType } from '../../../application/data/schemas';
 
 export function getDefaultLayerValues(): LayerFormType {
   return {
-    dataType: 'zarr-leaflet',
+    dataType: 'zarr-maps',
     dataDescription: ['', ''],
     content: '',
     params: {

@@ -3,6 +3,15 @@ import type { LeafletLayerOptions } from './types';
 import type { ColorMapName, ZarrSelectorsProps } from '../core/types';
 import { ZarrLayerProvider } from '../core/zarr-layer-provider';
 
+/**
+ * Leaflet Zarr tile layer using the shared ZarrLayerProvider.
+ *
+ * @remarks
+ * This class extends `L.GridLayer` to create a custom tile layer that fetches
+ * and renders tiles from a Zarr data source using the `ZarrLayerProvider`.
+ *
+ * @param options - Configuration options for the Zarr layer. Instance of {@link LeafletLayerOptions} & {@link L.GridLayerOptions}.
+ */
 export class ZarrLayer extends L.GridLayer {
   public provider: ZarrLayerProvider;
 
@@ -22,6 +31,11 @@ export class ZarrLayer extends L.GridLayer {
     return this;
   }
 
+  /**
+   * Loads the Zarr layer and returns a promise that resolves when the layer is ready.
+   *
+   * @returns A promise that resolves to `true` when the layer is ready.
+   */
   async load(): Promise<boolean> {
     return await this.provider.readyPromise;
   }
@@ -32,6 +46,13 @@ export class ZarrLayer extends L.GridLayer {
     return this;
   }
 
+  /**
+   * Update the visual style of the layer.
+   * @param opts - Style options to update.
+   * @param opts.opacity - Layer opacity.
+   * @param opts.scale - [min, max] range for data scaling.
+   * @param opts.colormap - Colormap name.
+   */
   updateStyle(opts: { opacity?: number; scale?: [number, number]; colormap?: ColorMapName }) {
     const changed = this.provider.updateStyle({ scale: opts.scale, colormap: opts.colormap });
     if (opts.opacity !== undefined) this.setOpacity(opts.opacity);
@@ -39,6 +60,10 @@ export class ZarrLayer extends L.GridLayer {
     if (changed) this.redraw();
   }
 
+  /**
+   * Update the selectors used for slicing the Zarr dataset.
+   * @param selectors - New selectors to apply.
+   */
   updateSelectors(selectors: { [key: string]: ZarrSelectorsProps }) {
     const changed = this.provider.updateSelectors(selectors);
     if (changed) this.redraw();

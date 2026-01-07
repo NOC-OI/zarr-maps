@@ -1,6 +1,6 @@
 import { GetZarrLayer } from '../../../lib/map-layers/addZarrLayer';
 import type { DataInfoType, SelectedLayersType } from '../../../types';
-import { ZarrLayer, type LeafletLayerOptions } from '../../../../../dist/leaflet';
+import { ZarrLayer, type OLLayerOptions } from 'zarr-maps/ol';
 import type React from 'react';
 import { findLayerById } from './layers-handle';
 
@@ -16,7 +16,7 @@ export async function generateSelectedLayer(
   if (layer) map.removeLayer(layer);
   try {
     if (layerName.dataType === 'zarr-maps') {
-      const layer = await getZarrLeafletLayer(layerName, actualLayer);
+      const layer = await getZarrMapsLayer(layerName, actualLayer);
       await updateSelectedLayersWithDimensions(
         layer.provider,
         actualLayer,
@@ -58,8 +58,8 @@ export async function updateSelectedLayersWithDimensions(
   }));
 }
 
-export async function getZarrLeafletLayer(layerName: DataInfoType, actualLayer: string) {
-  const options = layerName.params as LeafletLayerOptions;
+export async function getZarrMapsLayer(layerName: DataInfoType, actualLayer: string) {
+  const options = layerName.params as OLLayerOptions;
   options.id = actualLayer;
   const zarrLayer = new ZarrLayer({
     ...options
@@ -70,7 +70,7 @@ export async function getZarrLeafletLayer(layerName: DataInfoType, actualLayer: 
 }
 
 export async function getZarrLayer(layerName: DataInfoType, actualLayer: string) {
-  const zarrLayerClass = new GetZarrLayer(layerName, actualLayer);
+  const zarrLayerClass = new GetZarrLayer(layerName, actualLayer, 'ol');
   const layer = await zarrLayerClass.getTile();
   return layer;
 }
