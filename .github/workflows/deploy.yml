@@ -50,6 +50,7 @@ jobs:
         run: |
           mkdir -p public/docs
           cp -r demo/dist/* public/
+          ls public
           cp -r docs/build/* public/docs/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
