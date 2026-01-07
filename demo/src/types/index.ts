@@ -1,4 +1,4 @@
-import type { BoundsProps, ZarrSelectors } from 'zarr-maps';
+import type { BoundsProps, ZarrSelectors } from 'zarr-maps/core';
 import type { LeafletLayerOptions } from 'zarr-maps/leaflet';
 import type { OLLayerOptions } from 'zarr-maps/ol';
 

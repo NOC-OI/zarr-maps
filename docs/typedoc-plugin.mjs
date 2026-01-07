@@ -28,18 +28,3 @@ export function load(app) {
     page.contents = escaped;
   });
 }
-No routes matched location "/zarr-maps/"
-overrideMethod @ hook.js:608
-Tr @ index-Bblj1aLS.js:10
-Dx @ index-Bblj1aLS.js:12
-QC @ index-Bblj1aLS.js:10
-fR @ index-Bblj1aLS.js:12
-H5 @ index-Bblj1aLS.js:9
-f7 @ index-Bblj1aLS.js:9
-Bp @ index-Bblj1aLS.js:9
-pg @ index-Bblj1aLS.js:9
-dT @ index-Bblj1aLS.js:9
-z7 @ index-Bblj1aLS.js:9
-ug @ index-Bblj1aLS.js:9
-Rg @ index-Bblj1aLS.js:9
-a0 @ index-Bblj1aLS.js:2Understand this warning
