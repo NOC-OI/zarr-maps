@@ -1,6 +1,6 @@
 {
   "name": "zarr-maps",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Leaflet and OpenLayers integration library for visualizing Zarr datasets.",
   "author": "Tobias <tobias.ferreira@noc.ac.uk>",
   "license": "MIT",
