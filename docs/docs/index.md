@@ -51,11 +51,11 @@ Zarr Store (HTTP / S3 / GCS)
 ↓
 zarrita.js (Zarr client)
 ↓
-Zarr-maps Providers
+Zarr-maps Layers
 ↓
-Leaflet (WebGL)
+Leaflet / OpenLayers
 ↓
-2D/3D Interactive Visualization
+2D Interactive Visualization
 
 ```
 
