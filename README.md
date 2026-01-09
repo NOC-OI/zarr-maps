@@ -13,7 +13,7 @@
 
 ![Zarr-maps Demo Screenshot](docs/assets/demo-interaction.gif)
 
-> Example of visualizing a Zarr dataset in a Leaflet map using zarr-maps. You can dynamically change time slices, colormaps, and scale ranges.
+> Example of visualizing a Zarr dataset in Leaflet and Openlayers maps using zarr-maps. You can dynamically change time slices, colormaps, and scale ranges.
 
 ## Overview
 
