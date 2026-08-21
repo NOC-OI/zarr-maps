@@ -1,6 +1,6 @@
 {
   "name": "zarr-maps-ol",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "An OpenLayers integration library for visualizing Zarr datasets.",
   "author": "Tobias <tobias.ferreira@noc.ac.uk>",
   "license": "MIT",
@@ -8,20 +8,42 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prebuild": "npm run clean",
     "build": "tsup src/index.ts --format esm --dts --sourcemap --external zarr-maps-colormap --external zarr-maps-tiling --external ol",
     "dev": "tsup src/index.ts --format esm --dts --sourcemap --external zarr-maps-colormap --external zarr-maps-tiling --external ol --watch",
     "clean": "rm -rf dist"
   },
-  "dependencies": { "zarr-maps-colormap": "^0.1.0", "zarr-maps-tiling": "^0.1.0" },
-  "peerDependencies": { "ol": "*" },
-  "devDependencies": { "ol": "^10.6.1", "tsup": "^8.0.2", "typescript": "^5.6.3" },
-  "repository": { "type": "git", "url": "git+https://github.com/noc-oi/zarr-maps.git", "directory": "packages/zarr-maps-ol" },
-  "bugs": { "url": "https://github.com/noc-oi/zarr-maps/issues" },
+  "dependencies": {
+    "zarr-maps-colormap": "^0.2.0",
+    "zarr-maps-tiling": "^0.2.0"
+  },
+  "peerDependencies": {
+    "ol": "*"
+  },
+  "devDependencies": {
+    "ol": "^10.6.1",
+    "tsup": "^8.0.2",
+    "typescript": "^5.6.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noc-oi/zarr-maps.git",
+    "directory": "packages/zarr-maps-ol"
+  },
+  "bugs": {
+    "url": "https://github.com/noc-oi/zarr-maps/issues"
+  },
   "homepage": "https://noc-oi.github.io/zarr-maps",
   "packageManager": "npm@10.9.8"
 }

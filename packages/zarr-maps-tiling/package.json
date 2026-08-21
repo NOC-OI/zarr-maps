@@ -1,6 +1,6 @@
 {
   "name": "zarr-maps-tiling",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework-independent Zarr tiling utilities for web maps.",
   "repository": {
     "type": "git",
@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "proj4": "^2.19.10",
-    "zarr-maps-colormap": "^0.1.0",
+    "zarr-maps-colormap": "^0.2.0",
     "zarrita": "^0.7.4"
   },
   "devDependencies": {

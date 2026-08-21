@@ -194,3 +194,112 @@ npm run deploy
 ```
 
 This depends on your project’s hosting setup (GitHub Pages, Vercel, etc.).
+
+---
+
+# 7. Releasing All Packages to npm
+
+The repository publishes four npm packages:
+
+- `zarr-maps-colormap`
+- `zarr-maps-tiling`
+- `zarr-maps-leaflet`
+- `zarr-maps-ol`
+
+The release workflow publishes all four packages whenever a tag beginning with `v` is pushed. Every package must therefore receive a new version, even if a release changes only one of them; npm will reject an attempt to publish a version that already exists.
+
+The following example prepares release `0.2.0`. Run all commands from the repository root.
+
+## 7.1. Update the release branch
+
+Make sure the local branch contains the workspace-based package structure and is up to date:
+
+```bash
+git status
+git pull --ff-only origin dev
+npm pkg get name version --workspaces
+```
+
+If npm reports `No workspaces found`, do not continue with the release. Check that the root `package.json` contains the `packages/*` workspace and that the workspace-organization changes have been merged into the current branch.
+
+If `git pull --ff-only` reports local changes or diverging history, resolve that branch state before creating the release tag.
+
+## 7.2. Update package versions
+
+Set the new version on all four packages:
+
+```bash
+npm pkg set version=0.2.0 --workspace=zarr-maps-colormap
+npm pkg set version=0.2.0 --workspace=zarr-maps-tiling
+npm pkg set version=0.2.0 --workspace=zarr-maps-leaflet
+npm pkg set version=0.2.0 --workspace=zarr-maps-ol
+```
+
+Update the dependencies between the packages so consumers install compatible versions:
+
+```bash
+npm pkg set dependencies.zarr-maps-colormap="^0.2.0" \
+  --workspace=zarr-maps-tiling
+
+npm pkg set dependencies.zarr-maps-colormap="^0.2.0" \
+  dependencies.zarr-maps-tiling="^0.2.0" \
+  --workspace=zarr-maps-leaflet
+
+npm pkg set dependencies.zarr-maps-colormap="^0.2.0" \
+  dependencies.zarr-maps-tiling="^0.2.0" \
+  --workspace=zarr-maps-ol
+```
+
+Regenerate the root lockfile after changing the manifests:
+
+```bash
+npm install
+```
+
+For later releases, replace `0.2.0` with the intended version in every command.
+
+## 7.3. Validate the release
+
+Build the packages, demo, and documentation:
+
+```bash
+npm run build
+npm --prefix demo run build
+npm --prefix docs run build
+```
+
+Optionally inspect the files that each npm package will contain:
+
+```bash
+npm pack --workspace=zarr-maps-colormap --dry-run
+npm pack --workspace=zarr-maps-tiling --dry-run
+npm pack --workspace=zarr-maps-leaflet --dry-run
+npm pack --workspace=zarr-maps-ol --dry-run
+```
+
+## 7.4. Commit and tag the release
+
+Review the changes before committing. The package manifests and root lockfile should all contain the new versions.
+
+```bash
+git diff -- packages/*/package.json package-lock.json
+git add package.json package-lock.json packages/*/package.json
+git commit -m "Release v0.2.0"
+git tag -a v0.2.0 -m "Release v0.2.0"
+git push origin dev
+git push origin v0.2.0
+```
+
+Pushing the tag triggers `.github/workflows/publish-npm.yml`, which builds and publishes packages in dependency order:
+
+```text
+zarr-maps-colormap -> zarr-maps-tiling -> zarr-maps-leaflet
+                                        -> zarr-maps-ol
+```
+
+Before tagging, confirm that the repository has an `NPM_TOKEN` GitHub Actions secret with permission to publish all four packages. The workflow installation step should include development dependencies required by TypeScript and `tsup`, for example:
+
+```yaml
+- name: Install dependencies
+  run: npm ci --include=dev
+```
