@@ -15,6 +15,7 @@
     "dev:ol": "npm run dev --workspace=zarr-maps-ol",
     "clean": "npm run clean --workspaces --if-present",
     "docs": "npm --prefix docs run build",
+    "serve:docs": "npm --prefix docs run serve",
     "start:demo": "npm --prefix demo run dev"
   }
 }

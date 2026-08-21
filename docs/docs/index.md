@@ -36,32 +36,47 @@ It provides **Leaflet and OpenLayers layers** that stream and render multidimens
 
 ---
 
-## Package overview
+## Packages
 
-| Package | Purpose |
-| --- | --- |
-| **zarr-maps-colormap** | Shared colormap names and color-ramp utilities. |
-| **zarr-maps-tiling** | Framework-independent Zarr access, querying, and WebGL tile rendering. |
-| **zarr-maps-leaflet** | Leaflet `GridLayer` adapter. |
-| **zarr-maps-ol** | OpenLayers tile-layer adapter. |
+Zarr-maps is a collection of four packages. Most applications install one of the map-library adapters; npm installs the shared tiling and colormap packages with it.
+
+### `zarr-maps-tiling`
+
+The framework-independent core of Zarr-maps. It opens Zarr v2 and v3 datasets through [Zarrita](https://zarrita.dev/), selects multidimensional slices, chooses an appropriate resolution from multiscale datasets, and renders map tiles with WebGL. It also provides point, time-series, vertical-profile, and transect queries through `ZarrTileProvider`.
+
+Use this package directly when building an integration for another mapping framework or when you need Zarr querying and tile rendering without Leaflet or OpenLayers. See the [`zarr-maps-tiling` API](api/zarr-maps-tiling/index.md).
+
+### `zarr-maps-colormap`
+
+Shared Matplotlib-inspired colormap definitions and color-ramp utilities. The map adapters use it to turn numeric Zarr values into colors, and applications can use it independently to build legends, previews, or custom styling controls. See the [`zarr-maps-colormap` API](api/zarr-maps-colormap/index.md).
+
+### `zarr-maps-leaflet`
+
+A Leaflet `GridLayer` adapter backed by `ZarrTileProvider`. Leaflet manages the tile lifecycle and map interaction while the shared tiling package loads and renders the Zarr data. The layer exposes runtime styling, dimension selection, and query methods.
+
+[Get started with Leaflet](getting-started-leaflet.md) or browse the [`zarr-maps-leaflet` API](api/zarr-maps-leaflet/index.md).
+
+### `zarr-maps-ol`
+
+An OpenLayers tile-layer adapter backed by `ZarrTileProvider`. It provides the same Zarr loading, styling, dimension-selection, and query capabilities through an OpenLayers-native layer.
+
+[Get started with OpenLayers](getting-started-openlayers.md) or browse the [`zarr-maps-ol` API](api/zarr-maps-ol/index.md).
 
 ---
 
-## Architecture Diagram (High-level)
+## How the packages fit together
 
+```text
+Zarr or Icechunk store
+          |
+          v
+ zarr-maps-tiling <--- zarr-maps-colormap
+       /     \
+      v       v
+  Leaflet  OpenLayers
 ```
 
-Zarr or Icechunk Store (public or authenticated)
-↓
-Zarrita-compatible store
-↓
-zarr-maps-tiling
-↓
-Leaflet / OpenLayers
-↓
-2D Interactive Visualization
-
-```
+Both adapters accept either a Zarr URL or a custom Zarrita-compatible store. They share the same rendering, authentication, multiscale, selector, no-data, CRS, styling, and query behavior.
 
 ---
 
