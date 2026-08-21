@@ -5,16 +5,17 @@ import { InfoButtonBox } from '../info-button-box';
 import { LayerLegendBox } from '../layer-legend-box';
 import { SideBarLink } from './side-bar-link';
 import { useLayersManagementHandle } from '../../application/use-layers';
-import type { InfoButtonBoxType, LayersLegendType } from '../../types';
+import type { LayersLegendType } from '../../types';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import DescriptionIcon from '@mui/icons-material/Description';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { AddCustomZarrData } from '../add-custom-zarr-data';
 import { MapToggle } from '../map-toggle';
+import { useContextHandle } from '../../application/use-context';
 
 export function SideBar() {
   const [sideBarOption, setSideBarOption] = useState('');
-  const [infoButtonBox, setInfoButtonBox] = useState<InfoButtonBoxType>({});
+  const { infoButtonBox, setInfoButtonBox } = useContextHandle();
 
   const { selectedLayers, layerLegend, setLayerLegend } = useLayersManagementHandle();
 
@@ -29,6 +30,13 @@ export function SideBar() {
       }
     });
   }, [layerLegend, selectedLayers, setLayerLegend]);
+
+  useEffect(() => {
+    if (infoButtonBox.layerName && !selectedLayers[infoButtonBox.layerName]) {
+      infoButtonBox.onClose?.();
+      setInfoButtonBox({});
+    }
+  }, [infoButtonBox, selectedLayers, setInfoButtonBox]);
 
   async function handleShowSelection(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
     const oldSelectedSidebarOption = sideBarOption;

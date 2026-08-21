@@ -16,13 +16,24 @@ import {
   changeMapColors,
   changeMapDimensions,
   changeMapOpacity,
+  findLayerById,
   removeLayerFromMap
 } from './_actions/layers-handle';
 
 import { LEAFLET_VIEW, LEAFLET_ZOOM } from '../../lib/map-layers/utils';
 import { fromLonLat } from 'ol/proj';
+import { toLonLat } from 'ol/proj';
 import Zoom from 'ol/control/Zoom';
 import { defaults as defaultControls } from 'ol/control';
+import { ZarrLayer } from 'zarr-maps-ol';
+import type { QueryPosition } from 'zarr-maps-tiling';
+import { PointQueryPanel, TransectQueryPanel } from '../query-panels';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
+import Feature from 'ol/Feature';
+import Point from 'ol/geom/Point';
+import LineString from 'ol/geom/LineString';
+import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
 
 export function MapOL() {
   const {
@@ -35,8 +46,40 @@ export function MapOL() {
   } = useLayersManagementHandle();
 
   const mapRef = useRef<Map | null>(null);
+  const sharedLayersRef = useRef(selectedLayers);
+  const sharedLayersRestoredRef = useRef(false);
+  const captureRef = useRef<((position: QueryPosition) => void) | null>(null);
+  const transectPositionsRef = useRef<QueryPosition[]>([]);
+  const transectLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
+  const pointLayerRef = useRef<VectorLayer<VectorSource> | null>(null);
 
-  const { setFlashMessage, setLoading } = useContextHandle();
+  const { setFlashMessage, setLoading, setInfoButtonBox, transectLayerName, setTransectLayerName } =
+    useContextHandle();
+
+  const clearTransect = useCallback(() => {
+    captureRef.current = null;
+    transectPositionsRef.current = [];
+    if (mapRef.current && transectLayerRef.current)
+      mapRef.current.removeLayer(transectLayerRef.current);
+    transectLayerRef.current = null;
+  }, []);
+  const clearPoint = useCallback(() => {
+    if (mapRef.current && pointLayerRef.current) mapRef.current.removeLayer(pointLayerRef.current);
+    pointLayerRef.current = null;
+  }, []);
+
+  const registerCapture = useCallback(
+    (handler: ((position: QueryPosition) => void) | null) => {
+      captureRef.current = handler;
+      if (handler && mapRef.current) {
+        clearTransect();
+        captureRef.current = handler;
+        transectLayerRef.current = new VectorLayer({ source: new VectorSource() });
+        mapRef.current.addLayer(transectLayerRef.current);
+      }
+    },
+    [clearTransect]
+  );
 
   const ref = useCallback(
     (node: HTMLDivElement | null) => {
@@ -66,10 +109,119 @@ export function MapOL() {
       });
 
       mapRef.current = map;
+      map.on('singleclick', event => {
+        const coordinate = toLonLat(event.coordinate) as QueryPosition;
+        if (captureRef.current) {
+          transectPositionsRef.current.push(coordinate);
+          const source = transectLayerRef.current!.getSource()!;
+          source.addFeature(new Feature({ geometry: new Point(event.coordinate) }));
+          if (transectPositionsRef.current.length === 2)
+            source.addFeature(
+              new Feature({
+                geometry: new LineString(
+                  transectPositionsRef.current.map(position => fromLonLat(position))
+                )
+              })
+            );
+          transectLayerRef.current!.setStyle(
+            new Style({
+              image: new CircleStyle({
+                radius: 6,
+                fill: new Fill({ color: '#00ffff' }),
+                stroke: new Stroke({ color: '#000', width: 2 })
+              }),
+              stroke: new Stroke({ color: '#00ffff', width: 3 })
+            })
+          );
+          captureRef.current(coordinate);
+          return;
+        }
+        const layer = [...map.getLayers().getArray()]
+          .reverse()
+          .find(candidate => candidate instanceof ZarrLayer) as ZarrLayer | undefined;
+        if (!layer) return;
+        clearTransect();
+        if (pointLayerRef.current) map.removeLayer(pointLayerRef.current);
+        pointLayerRef.current = new VectorLayer({
+          source: new VectorSource({
+            features: [new Feature({ geometry: new Point(event.coordinate) })]
+          }),
+          style: new Style({
+            image: new CircleStyle({
+              radius: 6,
+              fill: new Fill({ color: '#ffff00' }),
+              stroke: new Stroke({ color: '#000', width: 2 })
+            })
+          })
+        });
+        map.addLayer(pointLayerRef.current);
+        const layerName = String(layer.get('id') ?? 'Zarr layer');
+        setInfoButtonBox({
+          title: 'Zarr point query',
+          layerName,
+          onClose: clearPoint,
+          content: (
+            <PointQueryPanel
+              provider={layer.provider}
+              layerName={layerName}
+              position={coordinate}
+            />
+          )
+        });
+      });
+      if (!sharedLayersRestoredRef.current) {
+        sharedLayersRestoredRef.current = true;
+        const sharedLayers = sharedLayersRef.current;
+        void (async () => {
+          for (const layerName of Object.keys(sharedLayers).reverse()) {
+            await generateSelectedLayer(
+              layerName,
+              sharedLayers,
+              mapRef as React.RefObject<Map>,
+              setSelectedLayers
+            );
+          }
+        })().finally(() => setLoading(false));
+      }
       setLoading(false);
     },
-    [setLoading]
+    [clearPoint, clearTransect, setInfoButtonBox, setLoading, setSelectedLayers]
   );
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !transectLayerName) return;
+    const layer = findLayerById(map, transectLayerName);
+    if (layer instanceof ZarrLayer) {
+      const display = selectedLayers[transectLayerName].params;
+      clearPoint();
+      clearTransect();
+      setInfoButtonBox({
+        title: 'Transect query',
+        layerName: transectLayerName,
+        onClose: clearTransect,
+        content: (
+          <TransectQueryPanel
+            provider={layer.provider}
+            layerName={transectLayerName}
+            registerCapture={registerCapture}
+            clearCapture={clearTransect}
+            colormap={display.colormap}
+            scale={display.scale}
+          />
+        )
+      });
+    }
+    setTransectLayerName('');
+  }, [
+    clearTransect,
+    clearPoint,
+    registerCapture,
+    selectedLayers,
+    setInfoButtonBox,
+    setTransectLayerName,
+    transectLayerName
+  ]);
 
   async function addLayerIntoMap() {
     if (!mapRef.current) return;
@@ -94,9 +246,11 @@ export function MapOL() {
 
   async function handleLayerAction(actionMap: keyable, action: string) {
     setLoading(true);
+    // Consume the action before it causes dimension/state updates. Otherwise
+    // those updates rerun this effect while `add` is still active.
+    setLayerAction('');
     await actionMap[action].function(...actionMap[action].args);
     setLoading(false);
-    setLayerAction('');
   }
 
   useEffect(() => {
@@ -131,11 +285,13 @@ export function MapOL() {
   useEffect(() => {
     return () => {
       if (mapRef.current) {
+        clearTransect();
+        clearPoint();
         mapRef.current.setTarget(undefined);
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [clearPoint, clearTransect]);
 
   return (
     <div

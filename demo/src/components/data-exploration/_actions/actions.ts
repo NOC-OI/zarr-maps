@@ -7,7 +7,7 @@ import type {
   SelectedLayersType,
   TitilerOptions
 } from '../../../types';
-import { DEFAULT_COLORMAP, DEFAULT_OPACITY } from 'zarr-maps';
+import { DEFAULT_COLORMAP, DEFAULT_OPACITY } from 'zarr-maps-tiling';
 
 export function handleChangeOpacity(
   e: React.ChangeEvent<HTMLInputElement>,

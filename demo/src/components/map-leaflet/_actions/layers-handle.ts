@@ -2,7 +2,7 @@ import type React from 'react';
 import { DEFAULT_BOUNDS } from '../../../lib/map-layers/utils';
 import type { LayersJsonType, SelectedLayersType } from '../../../types';
 import { generateSelectedLayer, updateSelectedLayersWithDimensions } from './get-layers';
-import { DEFAULT_OPACITY } from 'zarr-maps';
+import { DEFAULT_OPACITY } from 'zarr-maps-tiling';
 
 export function getBoundsFromBBox(bbox: number[] | null): [[number, number], [number, number]] {
   if (!bbox || bbox.length !== 4) return DEFAULT_BOUNDS;
@@ -25,27 +25,24 @@ export function findLayerById(map: L.Map, id: string): any | null {
   return found;
 }
 
+function findLayersById(map: L.Map, id: string): any[] {
+  const found: any[] = [];
+  map.eachLayer((layer: any) => {
+    if (layer?.options?.id === id) found.push(layer);
+  });
+  return found;
+}
+
 export function removeLayerFromMap(
   actualLayer: string,
-  listLayers: LayersJsonType,
+  _listLayers: LayersJsonType,
   mapRef: React.RefObject<L.Map>
 ): void {
   const map = mapRef.current;
   if (!map) return;
 
-  const splitActual = actualLayer.split('_');
-  if (splitActual.length > 2) {
-    splitActual[1] = splitActual.slice(1).join('_');
-  }
-  const layerInfo = listLayers?.[splitActual[0]]?.layerNames?.[splitActual[1]];
-  if (!layerInfo) return;
-
-  const layer = findLayerById(map, actualLayer);
-  if (!layer) return;
-
-  map.removeLayer(layer);
-
-  if (layerInfo.dataType === 'zarr-maps') {
+  for (const layer of findLayersById(map, actualLayer)) {
+    map.removeLayer(layer);
     layer.provider?.destroy?.();
   }
 }

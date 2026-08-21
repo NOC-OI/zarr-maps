@@ -1,8 +1,10 @@
 import { GetZarrLayer } from '../../../lib/map-layers/addZarrLayer';
 import type { DataInfoType, SelectedLayersType } from '../../../types';
-import { ZarrLayer, type LeafletLayerOptions } from 'zarr-maps/leaflet';
+import { ZarrLayer, type LeafletLayerOptions } from 'zarr-maps-leaflet';
+import { IcechunkStore } from 'icechunk-js';
 import type React from 'react';
 import { findLayerById } from './layers-handle';
+import { store } from '../../../application/store';
 
 export async function generateSelectedLayer(
   actualLayer: string,
@@ -23,9 +25,14 @@ export async function generateSelectedLayer(
         selectedLayers,
         setSelectedLayers
       );
+      if (!store.getState().layers.selectedLayers[actualLayer]) {
+        layer.provider.destroy();
+        return;
+      }
       map.addLayer(layer);
     } else if (layerName.dataType === 'zarr-titiler') {
       const layer = await getZarrLayer(layerName, actualLayer);
+      if (!store.getState().layers.selectedLayers[actualLayer]) return;
       map.addLayer(layer);
     }
   } catch (err) {
@@ -52,14 +59,14 @@ export async function updateSelectedLayersWithDimensions(
     }
   });
   selected.dimensions = dimensions;
-  setSelectedLayers(prev => ({
-    ...prev,
-    [actualLayer]: selected
-  }));
+  setSelectedLayers(prev => prev[actualLayer] ? { ...prev, [actualLayer]: selected } : prev);
 }
 
 export async function getZarrLeafletLayer(layerName: DataInfoType, actualLayer: string) {
-  const options = layerName.params as LeafletLayerOptions;
+  const options = { ...layerName.params } as LeafletLayerOptions;
+  if (options.url?.endsWith('.icechunk')) {
+    options.store = await IcechunkStore.open(options.url, { branch: 'main', formatVersion: 'v1' });
+  }
   options.id = actualLayer;
   const zarrLayer = new ZarrLayer({
     ...options

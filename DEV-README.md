@@ -15,12 +15,15 @@ Whether you want to fix bugs, add features, or update the docs, this guide will 
 ```
 
 zarr-maps/
-├── src/ # Main TypeScript source code
+├── packages/
+│   ├── zarr-maps-colormap/ # Shared palette registry and color-ramp utilities
+│   ├── zarr-maps-leaflet/ # Leaflet adapter
+│   ├── zarr-maps-ol/ # OpenLayers adapter
+│   └── zarr-maps-tiling/ # Framework-independent Zarr tiling pipeline and defaults
 ├── docs/ # Documentation website (Docusaurus)
 ├── demo/ # Demo web application (Vite)
-├── dist/ # Build output (gitignored)
-├── package.json # Library root package
-└── tsconfig.json
+├── package.json # Private workspace coordinator
+└── tsconfig.base.json
 
 ```
 
@@ -120,12 +123,15 @@ npm install
 npm run build
 ```
 
-Outputs will go to `dist/`.
+Outputs are written to each package's `dist/` directory.
 
 ## Watch for changes
 
+Run either package in watch mode:
+
 ```bash
-npm run dev
+npm run dev:tiling
+npm run dev:maps
 ```
 
 This will compile TypeScript in watch mode.
