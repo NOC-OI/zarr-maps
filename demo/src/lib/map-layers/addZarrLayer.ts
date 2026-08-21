@@ -1,4 +1,4 @@
-import { DEFAULT_OPACITY } from 'zarr-maps';
+import { DEFAULT_OPACITY } from 'zarr-maps-tiling';
 import type { keyable, SelectedLayer, TitilerOptions } from '../../types';
 import { ZARR_TILE_SERVER_URL } from './utils';
 import L from 'leaflet';

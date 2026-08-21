@@ -25,21 +25,25 @@ It provides **Leaflet and OpenLayers layers** that stream and render multidimens
 ## Features
 
 - **Zarr v2 and v3 support**
-- **Single-scale and multiscale datasets** (following the format generated using [ndpyramid](https://github.com/carbonplan/ndpyramid))
+- **Single-scale and multiscale datasets** using legacy/ndpyramid or GeoZarr layouts
+- **Icechunk and custom Zarrita-compatible stores**
+- **Private datasets** using headers, credentials, signed URLs, or request transforms
 - **Automatic resolution selection** for multiscale datasets
 - **CRS-aware** (EPSG:4326 & EPSG:3857)
 - **WebGL-accelerated rendering**
 - **Dynamic styling** (colormap, opacity, scaling, slices, animation)
+- **Point, time-series, vertical-profile, and transect queries**
 
 ---
 
-## Provider Overview
+## Package overview
 
-| Provider                     | Purpose             | Description                                                |
-| ---------------------------- | ------------------- | ---------------------------------------------------------- |
-| **ZarrLayerProvider**        | 2D scalar fields    | Renders imagery layers from single/multiscale Zarr arrays. |
-| **ZarrCubeProvider**         | 3D volumetric cubes | Renders 3D slices (horizontal & vertical).                 |
-| **ZarrCubeVelocityProvider** | 3D vector fields    | Animated particle advection from U/V components.           |
+| Package | Purpose |
+| --- | --- |
+| **zarr-maps-colormap** | Shared colormap names and color-ramp utilities. |
+| **zarr-maps-tiling** | Framework-independent Zarr access, querying, and WebGL tile rendering. |
+| **zarr-maps-leaflet** | Leaflet `GridLayer` adapter. |
+| **zarr-maps-ol** | OpenLayers tile-layer adapter. |
 
 ---
 
@@ -47,11 +51,11 @@ It provides **Leaflet and OpenLayers layers** that stream and render multidimens
 
 ```
 
-Zarr Store (HTTP / S3 / GCS)
+Zarr or Icechunk Store (public or authenticated)
 ↓
-zarrita.js (Zarr client)
+Zarrita-compatible store
 ↓
-Zarr-maps Layers
+zarr-maps-tiling
 ↓
 Leaflet / OpenLayers
 ↓

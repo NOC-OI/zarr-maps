@@ -1,0 +1,40 @@
+{
+  "name": "zarr-maps-tiling",
+  "version": "0.1.0",
+  "description": "Framework-independent Zarr tiling utilities for web maps.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noc-oi/zarr-maps.git",
+    "directory": "packages/zarr-maps-tiling"
+  },
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "prebuild": "npm run clean",
+    "build": "tsup src/index.ts --format esm --dts --sourcemap --external zarrita --external zarr-maps-colormap",
+    "dev": "tsup src/index.ts --format esm --dts --sourcemap --external zarrita --external zarr-maps-colormap --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "proj4": "^2.19.10",
+    "zarr-maps-colormap": "^0.1.0",
+    "zarrita": "^0.7.4"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.2",
+    "typescript": "^5.6.3"
+  }
+}

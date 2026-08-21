@@ -2,12 +2,12 @@ import type React from 'react';
 import { DEFAULT_BOUNDS } from '../../../lib/map-layers/utils';
 import type { LayersJsonType, SelectedLayersType } from '../../../types';
 import { generateSelectedLayer, updateSelectedLayersWithDimensions } from './get-layers';
-import { DEFAULT_OPACITY } from 'zarr-maps';
+import { DEFAULT_OPACITY } from 'zarr-maps-tiling';
 
 import type Map from 'ol/Map';
 import type BaseLayer from 'ol/layer/Base';
 import { transformExtent } from 'ol/proj';
-import type { ZarrLayer } from 'zarr-maps/ol';
+import type { ZarrLayer } from 'zarr-maps-ol';
 
 type OLMapRef = React.RefObject<Map>;
 
@@ -42,27 +42,22 @@ export function findLayerById(map: Map, id: string): BaseLayer | ZarrLayer | nul
   return layers.find(l => (l as any).get?.('id') === id) ?? null;
 }
 
+function findLayersById(map: Map, id: string): Array<BaseLayer | ZarrLayer> {
+  return (map.getLayers().getArray() as BaseLayer[]).filter(
+    layer => (layer as any).get?.('id') === id
+  );
+}
+
 export function removeLayerFromMap(
   actualLayer: string,
-  listLayers: LayersJsonType,
+  _listLayers: LayersJsonType,
   mapRef: OLMapRef
 ): void {
   const map = mapRef.current;
   if (!map) return;
 
-  const splitActual = actualLayer.split('_');
-  if (splitActual.length > 2) {
-    splitActual[1] = splitActual.slice(1).join('_');
-  }
-  const layerInfo = listLayers?.[splitActual[0]]?.layerNames?.[splitActual[1]];
-  if (!layerInfo) return;
-
-  const layer = findLayerById(map, actualLayer);
-  if (!layer) return;
-
-  map.removeLayer(layer);
-
-  if (layerInfo.dataType === 'zarr-maps') {
+  for (const layer of findLayersById(map, actualLayer)) {
+    map.removeLayer(layer);
     (layer as ZarrLayer).provider?.destroy?.();
   }
 }

@@ -3,7 +3,7 @@ import { themes as prismThemes } from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'zarr-maps',
-  tagline: 'Visualize multidimensional Zarr datasets in Leaflet',
+  tagline: 'Visualize multidimensional Zarr datasets in Leaflet and OpenLayers',
   url: 'https://noc-oi.github.io',
   baseUrl: '/zarr-maps/docs/',
 
@@ -24,8 +24,14 @@ const config = {
     [
       'docusaurus-plugin-typedoc',
       {
-        entryPoints: ['../src/core/index.ts', '../src/leaflet/index.ts', '../src/ol/index.ts'],
-        tsconfig: '../tsconfig.json',
+        entryPoints: [
+          '../packages/zarr-maps-colormap',
+          '../packages/zarr-maps-tiling',
+          '../packages/zarr-maps-leaflet',
+          '../packages/zarr-maps-ol'
+        ],
+        entryPointStrategy: 'packages',
+        tsconfig: '../tsconfig.base.json',
         plugin: ['./typedoc-plugin.mjs'],
         readme: 'none',
         indexFormat: 'table',

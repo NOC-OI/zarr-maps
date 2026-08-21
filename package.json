@@ -1,64 +1,20 @@
 {
-  "name": "zarr-maps",
-  "version": "0.1.2",
-  "description": "A Leaflet and OpenLayers integration library for visualizing Zarr datasets.",
-  "author": "Tobias <tobias.ferreira@noc.ac.uk>",
-  "license": "MIT",
-  "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./core": {
-      "import": "./dist/core/index.js",
-      "types": "./dist/core/index.d.ts"
-    },
-    "./leaflet": {
-      "import": "./dist/leaflet/index.js",
-      "types": "./dist/leaflet/index.d.ts"
-    },
-    "./ol": {
-      "import": "./dist/ol/index.js",
-      "types": "./dist/ol/index.d.ts"
-    }
-  },
-  "types": "./dist/index.d.ts",
-  "sideEffects": false,
-  "files": [
-    "dist"
-  ],
+  "name": "zarr-maps-monorepo",
+  "private": true,
+  "packageManager": "npm@10.9.8",
+  "workspaces": ["packages/*"],
   "scripts": {
-    "build": "tsup src/index.ts src/core/index.ts src/leaflet/index.ts src/ol/index.ts --format esm --dts --sourcemap",
-    "dev": "tsup src/index.ts src/core/index.ts src/leaflet/index.ts src/ol/index.ts --format esm --dts --sourcemap --watch",
-    "clean": "rm -rf dist",
-    "docs": "typedoc",
-    "start:demo": "cd demo && npm run dev"
-  },
-  "peerDependencies": {
-    "leaflet": "*",
-    "ol": "*"
-  },
-  "devDependencies": {
-    "@types/leaflet": "^1.9.21",
-    "@zarrita/ndarray": "^0.1.5",
-    "ndarray": "^1.0.19",
-    "proj4": "^2.19.10",
-    "tsup": "^8.0.2",
-    "typedoc": "^0.28.14",
-    "typedoc-plugin-markdown": "^4.9.0",
-    "typescript": "^5.6.3",
-    "zarrita": "^0.5.4"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/noc-oi/zarr-maps.git"
-  },
-  "bugs": {
-    "url": "https://github.com/noc-oi/zarr-maps/issues"
-  },
-  "homepage": "https://noc-oi.github.io/zarr-maps",
-  "packageManager": "yarn@1.22.22"
+    "build": "npm run build --workspace=zarr-maps-colormap && npm run build --workspace=zarr-maps-tiling && npm run build --workspace=zarr-maps-leaflet && npm run build --workspace=zarr-maps-ol",
+    "build:colormap": "npm run build --workspace=zarr-maps-colormap",
+    "build:tiling": "npm run build --workspace=zarr-maps-tiling",
+    "build:leaflet": "npm run build --workspace=zarr-maps-leaflet",
+    "build:ol": "npm run build --workspace=zarr-maps-ol",
+    "dev:colormap": "npm run dev --workspace=zarr-maps-colormap",
+    "dev:tiling": "npm run dev --workspace=zarr-maps-tiling",
+    "dev:leaflet": "npm run dev --workspace=zarr-maps-leaflet",
+    "dev:ol": "npm run dev --workspace=zarr-maps-ol",
+    "clean": "npm run clean --workspaces --if-present",
+    "docs": "npm --prefix docs run build",
+    "start:demo": "npm --prefix demo run dev"
+  }
 }

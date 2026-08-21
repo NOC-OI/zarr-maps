@@ -1,6 +1,6 @@
-import type { BoundsProps, ZarrSelectors } from 'zarr-maps';
-import type { LeafletLayerOptions } from 'zarr-maps/leaflet';
-import type { OLLayerOptions } from 'zarr-maps/ol';
+import type { BoundsProps, ZarrSelectors } from 'zarr-maps-tiling';
+import type { LeafletLayerOptions } from 'zarr-maps-leaflet';
+import type { OLLayerOptions } from 'zarr-maps-ol';
 
 export interface keyable {
   [key: string]: any;
@@ -12,7 +12,9 @@ export interface LayerLegendBoxProps {
 
 export interface InfoButtonBoxType {
   title?: string;
-  content?: string;
+  content?: React.ReactNode;
+  layerName?: string;
+  onClose?: () => void;
 }
 
 export interface TitilerOptions {

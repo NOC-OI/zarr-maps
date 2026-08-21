@@ -25,12 +25,28 @@ jobs:
           registry-url: https://registry.npmjs.org/
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build package
-        run: npm run build
+      - name: Build zarr-maps-colormap
+        run: npm run build:colormap
 
-      - name: Publish to npm
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish zarr-maps-colormap
+        run: npm publish --workspace=zarr-maps-colormap --access public
+
+      - name: Build zarr-maps-tiling
+        run: npm run build:tiling
+
+      - name: Publish zarr-maps-tiling
+        run: npm publish --workspace=zarr-maps-tiling --access public
+
+      - name: Build zarr-maps-leaflet
+        run: npm run build:leaflet
+
+      - name: Publish zarr-maps-leaflet
+        run: npm publish --workspace=zarr-maps-leaflet --access public
+
+      - name: Build zarr-maps-ol
+        run: npm run build:ol
+
+      - name: Publish zarr-maps-ol
+        run: npm publish --workspace=zarr-maps-ol --access public

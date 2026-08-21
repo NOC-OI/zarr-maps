@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLayersManagementHandle } from '../../application/use-layers';
 import Slider from '@mui/material/Slider';
-import type { BoundsProps } from 'zarr-maps';
+import type { BoundsProps } from 'zarr-maps-tiling';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 export default function BoundsSelector({

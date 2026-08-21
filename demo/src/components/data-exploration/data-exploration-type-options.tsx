@@ -13,6 +13,8 @@ import type { DataExplorationTypeOptionsProps } from '../../types';
 import InfoIcon from '@mui/icons-material/Info';
 import TuneIcon from '@mui/icons-material/Tune';
 import OpacityIcon from '@mui/icons-material/Opacity';
+import AreaChartIcon from '@mui/icons-material/AreaChart';
+import { useContextHandle } from '../../application/use-context';
 export function DataExplorationTypeOptions({
   content,
   subLayer,
@@ -28,6 +30,8 @@ export function DataExplorationTypeOptions({
     setLayerLegend
   } = useLayersManagementHandle();
   const [opacityIsClicked, setOpacityIsClicked] = useState(false);
+  const { setTransectLayerName } = useContextHandle();
+  const layerName = `${content}_${subLayer}`;
   return (
     <div className="text-xs">
       <div
@@ -78,6 +82,14 @@ export function DataExplorationTypeOptions({
               className="cursor-pointer hover:text-yellow-700"
               fontSize="small"
             />
+            {selectedLayers[layerName].dataType === 'zarr-maps' ? (
+              <AreaChartIcon
+                titleAccess="Query transect"
+                onClick={() => setTransectLayerName(layerName)}
+                className="cursor-pointer hover:text-yellow-700"
+                fontSize="small"
+              />
+            ) : null}
             <TuneIcon
               onClick={() =>
                 handleClickLegend(

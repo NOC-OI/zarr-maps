@@ -8,9 +8,9 @@ title: Getting Started
 ## Installation
 
 ```bash
-npm install zarr-maps
+npm install zarr-maps-leaflet zarr-maps-ol
 # or
-yarn add zarr-maps
+yarn add zarr-maps-leaflet zarr-maps-ol
 ```
 
 ---
@@ -21,7 +21,7 @@ yarn add zarr-maps
 
 ```ts
 import L from 'leaflet';
-import { ZarrLayer } from 'zarr-maps/leaflet';
+import { ZarrLayer } from 'zarr-maps-leaflet';
 
 const map = L.map('map', {
   center: [36.1, -5.4],
@@ -75,7 +75,7 @@ import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
-import { ZarrLayer } from 'zarr-maps/ol';
+import { ZarrLayer } from 'zarr-maps-ol';
 
 const map = new Map({
   target: 'map',
@@ -128,14 +128,80 @@ This:
 
 ---
 
+## Icechunk and custom stores
+
+Instead of `url`, pass any store implementing Zarrita's `Readable` interface. For example, using the Icechunk Zarrita client:
+
+```ts
+import { IcechunkStore } from '@icechunk/zarrita';
+import { ZarrLayer } from 'zarr-maps-leaflet';
+
+const store = await IcechunkStore.open(repositoryUrl, {
+  branch: 'main',
+  formatVersion: 'v1'
+});
+
+const layer = new ZarrLayer({
+  id: 'icechunk-temperature',
+  store,
+  variable: 'temperature'
+});
+
+await layer.load();
+layer.addTo(map);
+```
+
+Install and configure the Icechunk client in your application. It is intentionally not bundled with zarr-maps.
+
+## Private datasets
+
+Use `requestOverrides` for static fetch settings or `transformRequest` when authentication must be calculated for each Zarr object:
+
+```ts
+const layer = new ZarrLayer({
+  id: 'private-temperature',
+  url: 'https://data.example.com/temperature.zarr',
+  variable: 'temperature',
+  transformRequest: async url => ({
+    url,
+    credentials: 'include',
+    headers: { Authorization: `Bearer ${await getAccessToken()}` }
+  }),
+  onAuthError: status => refreshSession(status)
+});
+```
+
+`onAuthError` is called once when a transformed request returns HTTP 400 or 401, allowing the application to start its credential-refresh flow.
+
+## Querying data
+
+Leaflet and OpenLayers layers expose the same query methods as their `ZarrTileProvider`:
+
+```ts
+const position: [number, number] = [-5.4, 36.1];
+
+const point = await zarrLayer.queryData({ type: 'Point', coordinates: position });
+const timeSeries = await zarrLayer.getTimeSeries(position);
+const profile = await zarrLayer.getVerticalProfile(position);
+const transect = await zarrLayer.getTransect([-6, 36], [-4, 37], {}, { samples: 100 });
+const fullTransect = await zarrLayer.getFullTransect([-6, 36], [-4, 37]);
+```
+
+Query selectors do not change the slice displayed by the map. Pass an `AbortSignal` in the query options when the operation should be cancellable.
+
+---
+
 ## Options
+
+Both adapters accept either `url` or a custom Zarrita-compatible `store`. They also share request authentication, multiscale format, selector, no-data, CRS, and styling options through `ZarrTileOptions`.
 
 ### 1. Leaflet
 
 ```ts
 export interface LeafletLayerOptions {
   id: string; // Unique layer ID
-  url: string; // Public Zarr store
+  url?: string; // Zarr URL; required unless store is supplied
+  store?: Readable; // Custom store, including IcechunkStore
   variable: string; // Zarr array name
   scale?: [number, number]; // Min/max for color scaling
   colormap?: ColorMapName; // Name from jsColormaps, based on matplotlib colormaps
@@ -148,6 +214,10 @@ export interface LeafletLayerOptions {
   crs?: 'EPSG:4326' | 'EPSG:3857'; // Force CRS (auto-detected if not set)
   noDataMin?: number; // Custom no-data minimum value. Overrides _FillValue/missing_value.
   noDataMax?: number; // Custom no-data maximum value. Overrides _FillValue/missing_value.
+  requestOverrides?: RequestOverrides; // Static fetch headers and options
+  transformRequest?: TransformRequest; // Per-request auth, proxy, or signed URL transform
+  onAuthError?: OnAuthError; // Called once for HTTP 400/401 responses
+  multiscaleFormat?: 'auto' | 'legacy' | 'geozarr';
 }
 ```
 
@@ -156,7 +226,8 @@ export interface LeafletLayerOptions {
 ```ts
 export interface OLLayerOptions {
   id: string; // Unique layer ID
-  url: string; // Public Zarr store
+  url?: string; // Zarr URL; required unless store is supplied
+  store?: Readable; // Custom store, including IcechunkStore
   variable: string; // Zarr array name
   scale?: [number, number]; // Min/max for color scaling
   colormap?: ColorMapName; // Name from jsColormaps, based on matplotlib colormaps
@@ -169,6 +240,10 @@ export interface OLLayerOptions {
   crs?: 'EPSG:4326' | 'EPSG:3857'; // Force CRS (auto-detected if not set)
   noDataMin?: number; // Custom no-data minimum value. Overrides _FillValue/missing_value.
   noDataMax?: number; // Custom no-data maximum value. Overrides _FillValue/missing_value.
+  requestOverrides?: RequestOverrides; // Static fetch headers and options
+  transformRequest?: TransformRequest; // Per-request auth, proxy, or signed URL transform
+  onAuthError?: OnAuthError; // Called once for HTTP 400/401 responses
+  multiscaleFormat?: 'auto' | 'legacy' | 'geozarr';
 }
 ```
 
@@ -285,7 +360,7 @@ map.addLayer(zarrLayer);
 zarrLayer.updateStyle({ colormap: 'plasma' });
 ```
 
-The full list of supported colormaps is available in the [Colormaps section](api/index/type-aliases/ColorMapName.md).
+The full list of supported colormaps is available in the [Colormaps API](api/zarr-maps-colormap/type-aliases/ColorMapName.md).
 
 - scale range
 

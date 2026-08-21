@@ -23,8 +23,8 @@ export function ZarrForm({ register, control, errors }: ZarrFormProps) {
         placeholder="e.g. 2 or 3 or leave blank for auto-detect"
         error={errors?.params?.zarrVersion?.message}
       />
-      <ColormapField control={control} error={errors?.params?.colormap?.message} />
-      <ScaleField control={control} error={errors?.params?.scale?.message} />
+      <ColormapField control={control as any} error={errors?.params?.colormap?.message} />
+      <ScaleField control={control as any} error={errors?.params?.scale?.message} />
       <DimensionNamesSection register={register} error={errors?.params?.dimensionNames?.message} />
     </div>
   );
