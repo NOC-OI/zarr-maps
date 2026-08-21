@@ -1,5 +1,5 @@
 import proj4 from 'proj4';
-import { colormapBuilder } from '../../../../dist';
+import { colormapBuilder } from 'zarr-maps-colormap';
 
 export function parseRangeString(rangeStr: string): number[] | string[] {
   let match = rangeStr.match(/range\((\d+),\s*(\d+),\s*(\d+)\)/);

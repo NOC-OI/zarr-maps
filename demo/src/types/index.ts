@@ -1,5 +1,6 @@
-import type { BoundsProps, ZarrSelectorsProps } from '../../../dist';
-import type { LayerOptions } from '../../../dist';
+import type { BoundsProps, ZarrSelectors } from 'zarr-maps-tiling';
+import type { LeafletLayerOptions } from 'zarr-maps-leaflet';
+import type { OLLayerOptions } from 'zarr-maps-ol';
 
 export interface keyable {
   [key: string]: any;
@@ -11,7 +12,9 @@ export interface LayerLegendBoxProps {
 
 export interface InfoButtonBoxType {
   title?: string;
-  content?: string;
+  content?: React.ReactNode;
+  layerName?: string;
+  onClose?: () => void;
 }
 
 export interface TitilerOptions {
@@ -20,7 +23,7 @@ export interface TitilerOptions {
   scale?: [number, number];
   colormap?: string;
   opacity?: number;
-  selectors?: { [key: string]: ZarrSelectorsProps };
+  selectors?: ZarrSelectors;
 }
 
 export interface FlashMessageType {
@@ -46,11 +49,11 @@ export interface LayerNamesType {
 }
 
 export interface DataInfoType {
-  dataType: 'zarr-leaflet' | 'zarr-titiler';
+  dataType: 'zarr-maps' | 'zarr-titiler';
   dataDescription: [string, string];
   bbox?: BoundsProps;
   content?: string;
-  params: LayerOptions | TitilerOptions;
+  params: LeafletLayerOptions | OLLayerOptions | TitilerOptions;
 }
 
 export interface LayersLegendType {

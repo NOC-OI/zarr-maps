@@ -1,0 +1,50 @@
+{
+  "name": "zarr-maps-leaflet",
+  "version": "0.2.0",
+  "description": "A Leaflet integration library for visualizing Zarr datasets.",
+  "author": "Tobias <tobias.ferreira@noc.ac.uk>",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prebuild": "npm run clean",
+    "build": "tsup src/index.ts --format esm --dts --sourcemap --external zarr-maps-colormap --external zarr-maps-tiling --external leaflet",
+    "dev": "tsup src/index.ts --format esm --dts --sourcemap --external zarr-maps-colormap --external zarr-maps-tiling --external leaflet --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zarr-maps-colormap": "^0.2.0",
+    "zarr-maps-tiling": "^0.2.0"
+  },
+  "peerDependencies": {
+    "leaflet": "*"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.21",
+    "leaflet": "^1.9.4",
+    "tsup": "^8.0.2",
+    "typescript": "^5.6.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noc-oi/zarr-maps.git",
+    "directory": "packages/zarr-maps-leaflet"
+  },
+  "bugs": {
+    "url": "https://github.com/noc-oi/zarr-maps/issues"
+  },
+  "homepage": "https://noc-oi.github.io/zarr-maps",
+  "packageManager": "npm@10.9.8"
+}

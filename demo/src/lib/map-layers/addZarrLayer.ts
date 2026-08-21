@@ -1,19 +1,28 @@
-import { DEFAULT_OPACITY } from 'zarr-leaflet';
+import { DEFAULT_OPACITY } from 'zarr-maps-tiling';
 import type { keyable, SelectedLayer, TitilerOptions } from '../../types';
 import { ZARR_TILE_SERVER_URL } from './utils';
 import L from 'leaflet';
+import Tile from 'ol/layer/Tile';
+import XYZ from 'ol/source/XYZ';
+
 export class GetZarrLayer {
   layerName: SelectedLayer;
   actualLayer: string;
   layer: any;
   url: string;
   params: TitilerOptions;
-  constructor(layerName: SelectedLayer, actualLayer: string) {
+  mapType: 'leaflet' | 'ol';
+  constructor(
+    layerName: SelectedLayer,
+    actualLayer: string,
+    mapType: 'leaflet' | 'ol' = 'leaflet'
+  ) {
     this.layerName = layerName;
     this.params = layerName.params as TitilerOptions;
     this.actualLayer = actualLayer;
     this.layer = null;
     this.url = this.params.url;
+    this.mapType = mapType;
   }
 
   async getTile() {
@@ -26,15 +35,10 @@ export class GetZarrLayer {
     };
     if (this.layerName.params?.colormap) {
       params.colormap_name = this.layerName.params.colormap;
-      params.rescale = this.layerName.params.scale
-        ? `${this.layerName.params.scale[0]},${this.layerName.params.scale[1]}`
-        : '0,1';
     }
-    if (this.layerName.params?.scale) {
-      params.rescale = this.layerName.params.scale
-        ? `${this.layerName.params.scale[0]},${this.layerName.params.scale[1]}`
-        : '0,1';
-    }
+    params.rescale = this.layerName.params?.scale
+      ? `${this.layerName.params.scale[0]},${this.layerName.params.scale[1]}`
+      : '0,1';
     let dropDims = '';
     const dimensionsInfo = this.layerName.dimensions || {};
     Object.keys(dimensionsInfo).forEach(dimension => {
@@ -65,9 +69,32 @@ export class GetZarrLayer {
     const tileServerEnpoint = 'tiles/WebMercatorQuad/{z}/{x}/{y}@1x';
     const newUrl = `${ZARR_TILE_SERVER_URL}${tileServerEnpoint}?${queryString}`;
 
+    let layer;
+    if (this.mapType === 'ol') {
+      layer = this.getOLTileLayer(newUrl);
+    } else {
+      layer = this.getLeafletTileLayer(newUrl);
+    }
+    this.layer = layer;
+    return layer;
+  }
+
+  getOLTileLayer(newUrl: string) {
+    const layer = new Tile({
+      source: new XYZ({
+        url: newUrl,
+        maxZoom: 20
+      }),
+      opacity: this.params.opacity ?? DEFAULT_OPACITY
+    });
+    layer.set('id', this.actualLayer);
+    return layer;
+  }
+
+  getLeafletTileLayer(newUrl: string) {
     const layer = L.tileLayer(newUrl, {
-      opacity: this.params.opacity || DEFAULT_OPACITY,
-      maxZoom: 30,
+      opacity: this.params.opacity ?? DEFAULT_OPACITY,
+      maxZoom: 20,
       id: this.actualLayer
     });
     return layer;

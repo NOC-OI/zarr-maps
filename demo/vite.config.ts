@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
   const isProd = mode === 'production';
 
   return {
-    base: isProd ? '/zarr-leaflet/' : '/',
+    base: isProd ? '/zarr-maps/' : '/',
     plugins: [react(), tailwindcss()]
   };
 });

@@ -5,15 +5,17 @@ import { InfoButtonBox } from '../info-button-box';
 import { LayerLegendBox } from '../layer-legend-box';
 import { SideBarLink } from './side-bar-link';
 import { useLayersManagementHandle } from '../../application/use-layers';
-import type { InfoButtonBoxType, LayersLegendType } from '../../types';
+import type { LayersLegendType } from '../../types';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import DescriptionIcon from '@mui/icons-material/Description';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { AddCustomZarrData } from '../add-custom-zarr-data';
+import { MapToggle } from '../map-toggle';
+import { useContextHandle } from '../../application/use-context';
 
 export function SideBar() {
   const [sideBarOption, setSideBarOption] = useState('');
-  const [infoButtonBox, setInfoButtonBox] = useState<InfoButtonBoxType>({});
+  const { infoButtonBox, setInfoButtonBox } = useContextHandle();
 
   const { selectedLayers, layerLegend, setLayerLegend } = useLayersManagementHandle();
 
@@ -28,6 +30,13 @@ export function SideBar() {
       }
     });
   }, [layerLegend, selectedLayers, setLayerLegend]);
+
+  useEffect(() => {
+    if (infoButtonBox.layerName && !selectedLayers[infoButtonBox.layerName]) {
+      infoButtonBox.onClose?.();
+      setInfoButtonBox({});
+    }
+  }, [infoButtonBox, selectedLayers, setInfoButtonBox]);
 
   async function handleShowSelection(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
     const oldSelectedSidebarOption = sideBarOption;
@@ -59,13 +68,13 @@ export function SideBar() {
           <SideBarLink
             title={'Source Code'}
             id={'source_code'}
-            href={'https://github.com/noc-oi/zarr-leaflet'}
+            href={'https://github.com/noc-oi/zarr-maps'}
             icon={GitHubIcon}
           />
           <SideBarLink
             title={'Documentation'}
             id={'documentation'}
-            href={'https://noc-oi.github.io/zarr-leaflet/docs/'}
+            href={'https://noc-oi.github.io/zarr-maps/docs/'}
             icon={DescriptionIcon}
           />
         </div>
@@ -77,6 +86,7 @@ export function SideBar() {
           <AddCustomZarrData display={sideBarOption === 'add_your_own_zarr_data'} />
         </div>
       </div>
+      <MapToggle />
       {Object.keys(layerLegend).map(legend => (
         <LayerLegendBox key={legend} layerLegendName={legend} />
       ))}

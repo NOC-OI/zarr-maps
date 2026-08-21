@@ -2,13 +2,13 @@ import { themes as prismThemes } from 'prism-react-renderer';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'zarr-leaflet',
-  tagline: 'Visualize multidimensional Zarr datasets in Leaflet',
+  title: 'zarr-maps',
+  tagline: 'Visualize multidimensional Zarr datasets in Leaflet and OpenLayers',
   url: 'https://noc-oi.github.io',
-  baseUrl: '/zarr-leaflet/docs/',
+  baseUrl: '/zarr-maps/docs/',
 
   organizationName: 'NOC-OI',
-  projectName: 'zarr-leaflet',
+  projectName: 'zarr-maps',
   onBrokenLinks: 'warn',
   markdown: {
     hooks: {
@@ -24,8 +24,14 @@ const config = {
     [
       'docusaurus-plugin-typedoc',
       {
-        entryPoints: ['../src/index.ts'],
-        tsconfig: '../tsconfig.json',
+        entryPoints: [
+          '../packages/zarr-maps-colormap',
+          '../packages/zarr-maps-tiling',
+          '../packages/zarr-maps-leaflet',
+          '../packages/zarr-maps-ol'
+        ],
+        entryPointStrategy: 'packages',
+        tsconfig: '../tsconfig.base.json',
         plugin: ['./typedoc-plugin.mjs'],
         readme: 'none',
         indexFormat: 'table',
@@ -82,16 +88,16 @@ const config = {
             type: 'doc',
             docId: 'index',
             position: 'left',
-            label: 'zarr-leaflet Docs'
+            label: 'zarr-maps Docs'
           },
           {
-            href: 'https://github.com/NOC-OI/zarr-leaflet',
+            href: 'https://github.com/NOC-OI/zarr-maps',
             label: 'GitHub',
             position: 'right'
           },
           {
             label: 'Demo',
-            href: 'https://noc-oi.github.io/zarr-leaflet',
+            href: 'https://noc-oi.github.io/zarr-maps',
             position: 'right'
           }
         ]
@@ -103,11 +109,11 @@ const config = {
             items: [
               {
                 label: 'GitHub',
-                href: 'https://github.com/NOC-OI/zarr-leaflet'
+                href: 'https://github.com/NOC-OI/zarr-maps'
               },
               {
                 label: 'Demo',
-                href: 'https://noc-oi.github.io/zarr-leaflet'
+                href: 'https://noc-oi.github.io/zarr-maps'
               }
             ]
           }

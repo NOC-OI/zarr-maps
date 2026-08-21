@@ -1,0 +1,35 @@
+{
+  "name": "zarr-maps-colormap",
+  "version": "0.2.0",
+  "description": "Colormap definitions and color-ramp utilities for Zarr map renderers.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noc-oi/zarr-maps.git",
+    "directory": "packages/zarr-maps-colormap"
+  },
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "prebuild": "npm run clean",
+    "build": "tsup src/index.ts --format esm --dts --sourcemap",
+    "dev": "tsup src/index.ts --format esm --dts --sourcemap --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.2",
+    "typescript": "^5.6.3"
+  }
+}

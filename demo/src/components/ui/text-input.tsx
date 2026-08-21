@@ -25,7 +25,7 @@ export function TextInput({
         name={name}
         type={type}
         value={value}
-        onInput={onInput}
+        onChange={onInput}
         placeholder={placeholder}
         className="w-full bg-transparent border-b border-white text-white placeholder-gray-300 focus:outline-none focus:border-yellow-400 transition duration-200"
       />

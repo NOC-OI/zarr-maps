@@ -7,7 +7,7 @@ import type {
   SelectedLayersType,
   TitilerOptions
 } from '../../../types';
-import { DEFAULT_COLORMAP, DEFAULT_OPACITY } from '../../../../../dist';
+import { DEFAULT_COLORMAP, DEFAULT_OPACITY } from 'zarr-maps-tiling';
 
 export function handleChangeOpacity(
   e: React.ChangeEvent<HTMLInputElement>,
@@ -138,7 +138,7 @@ export async function addMapLayer(
 ) {
   setLayerAction('add');
   const newSelectedLayer = layerInfo.dataInfo;
-  if (['zarr-titiler', 'zarr-leaflet'].includes(newSelectedLayer.dataType)) {
+  if (['zarr-titiler', 'zarr-maps'].includes(newSelectedLayer.dataType)) {
     newSelectedLayer.params.scale = newSelectedLayer.params.scale || [0, 1];
     newSelectedLayer.params.colormap = newSelectedLayer.params.colormap
       ? newSelectedLayer.params.colormap
