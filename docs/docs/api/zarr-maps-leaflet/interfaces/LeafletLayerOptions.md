@@ -8,6 +8,23 @@ Configuration for a 2D raster (image) layer visualization in Leaflet.
 
 ## Properties
 
+### cache?
+
+```ts
+optional cache: boolean | TileCacheOptions;
+```
+
+Decoded numeric tile cache. Enabled by default. Pass `false` to disable it,
+or an options object to configure its per-provider byte budget.
+
+#### Inherited from
+
+```ts
+ZarrTileOptions.cache
+```
+
+***
+
 ### colormap?
 
 ```ts

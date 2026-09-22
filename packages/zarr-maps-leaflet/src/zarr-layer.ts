@@ -10,6 +10,12 @@ import {
 } from 'zarr-maps-tiling';
 import type { ColorMapName } from 'zarr-maps-colormap';
 
+function omitUndefined<T extends object>(options: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(options).filter(([, value]) => value !== undefined)
+  ) as Partial<T>;
+}
+
 /**
  * Leaflet Zarr tile layer using the shared ZarrTileProvider.
  *
@@ -27,7 +33,10 @@ export class ZarrLayer extends L.GridLayer {
    * @param options - Zarr dataset options combined with Leaflet grid-layer options.
    */
   constructor(options: LeafletLayerOptions & L.GridLayerOptions) {
-    super(options);
+    // Leaflet's setOptions performs a shallow assignment. Passing an explicitly
+    // undefined option (notably tileSize) therefore replaces its prototype
+    // default and can make GridLayer calculate an infinite tile range.
+    super(omitUndefined(options));
     const sizePoint = L.point((options.tileSize as any) ?? 256);
     const { tileSize, ...providerOpts } = options as any;
 

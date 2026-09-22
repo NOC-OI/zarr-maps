@@ -60,8 +60,87 @@ import type {
   TransectResult,
   FullTransectResult,
   MultiscaleFormat,
-  ZarrTileOptions
+  ZarrTileOptions,
+  TileCacheStats
 } from './types';
+
+const MIB = 1024 * 1024;
+
+/**
+ * Selects a conservative per-layer budget while allowing up to five active
+ * layers. `deviceMemory` is deliberately treated as a hint, not an allowance.
+ */
+function defaultTileCacheBytes(): number {
+  if (typeof navigator === 'undefined') return 32 * MIB;
+  const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+  if (deviceMemory === undefined) return 32 * MIB;
+  if (deviceMemory <= 2) return 8 * MIB;
+  if (deviceMemory <= 4) return 16 * MIB;
+  if (deviceMemory <= 8) return 32 * MIB;
+  return 64 * MIB;
+}
+
+interface CachedTileData {
+  data: Float32Array;
+  sizeBytes: number;
+}
+
+class TileDataCache {
+  private entries = new Map<string, CachedTileData>();
+  private bytes = 0;
+  private hits = 0;
+  private misses = 0;
+  private evictions = 0;
+
+  constructor(readonly maxBytes: number) {}
+
+  get(key: string): CachedTileData | undefined {
+    const entry = this.entries.get(key);
+    if (!entry) {
+      this.misses++;
+      return undefined;
+    }
+    this.hits++;
+    this.entries.delete(key);
+    this.entries.set(key, entry);
+    return entry;
+  }
+
+  set(key: string, entry: CachedTileData): void {
+    if (this.maxBytes <= 0 || entry.sizeBytes > this.maxBytes) return;
+    const previous = this.entries.get(key);
+    if (previous) {
+      this.bytes -= previous.sizeBytes;
+      this.entries.delete(key);
+    }
+    this.entries.set(key, entry);
+    this.bytes += entry.sizeBytes;
+    while (this.bytes > this.maxBytes) {
+      const oldestKey = this.entries.keys().next().value as string | undefined;
+      if (oldestKey === undefined) break;
+      const oldest = this.entries.get(oldestKey)!;
+      this.entries.delete(oldestKey);
+      this.bytes -= oldest.sizeBytes;
+      this.evictions++;
+    }
+  }
+
+  clear(): void {
+    this.entries.clear();
+    this.bytes = 0;
+  }
+
+  get stats(): TileCacheStats {
+    return {
+      entries: this.entries.size,
+      bytes: this.bytes,
+      maxBytes: this.maxBytes,
+      hits: this.hits,
+      misses: this.misses,
+      evictions: this.evictions
+    };
+  }
+}
 
 /**
  * Provides Zarr dataset access and rendering capabilities for web-map layers.
@@ -188,6 +267,7 @@ export class ZarrTileProvider {
   private _readyPromise!: Promise<boolean>;
 
   private abortControllers = new Map<string, AbortController>();
+  private tileDataCache: TileDataCache | null;
   private destroyed = false;
 
   private static readonly concurrencyLimit = 15;
@@ -216,6 +296,17 @@ export class ZarrTileProvider {
     this.customStore = options.store;
     this.latIsAscendingOverride = options.latIsAscending;
     this.renderTarget = options.renderTarget ?? 'web-map';
+    const cacheOptions =
+      typeof options.cache === 'object' ? options.cache : undefined;
+    const requestedCacheBytes = cacheOptions?.maxBytes;
+    const cacheBytes =
+      requestedCacheBytes === undefined
+        ? defaultTileCacheBytes()
+        : Number.isFinite(requestedCacheBytes)
+          ? Math.max(0, Math.floor(requestedCacheBytes))
+          : defaultTileCacheBytes();
+    const cacheEnabled = options.cache !== false && cacheOptions?.enabled !== false;
+    this.tileDataCache = cacheEnabled ? new TileDataCache(cacheBytes) : null;
 
     this.crs = options.crs || null;
     this.tileSize = options.tileSize ?? 256;
@@ -238,6 +329,26 @@ export class ZarrTileProvider {
     this.destroyed = true;
     for (const c of this.abortControllers.values()) c.abort();
     this.abortControllers.clear();
+    this.tileDataCache?.clear();
+  }
+
+  /** Removes all decoded numeric tiles retained by this provider. */
+  clearTileCache(): void {
+    this.tileDataCache?.clear();
+  }
+
+  /** Current decoded tile-cache usage and lifetime hit/eviction counters. */
+  get tileCacheStats(): TileCacheStats {
+    return (
+      this.tileDataCache?.stats ?? {
+        entries: 0,
+        bytes: 0,
+        maxBytes: 0,
+        hits: 0,
+        misses: 0,
+        evictions: 0
+      }
+    );
   }
 
   /**
@@ -904,7 +1015,6 @@ export class ZarrTileProvider {
         });
       return sorted;
     };
-
     return JSON.stringify(sortKeys(selector));
   }
 
@@ -1271,17 +1381,29 @@ export class ZarrTileProvider {
         this.selectors
       );
 
-      const data = await ZarrTileProvider.throttle(() =>
-        zarr.get(currentArray, sliceArgs, { opts: { signal: controller.signal } })
-      );
-
-      const src = data.data as Float32Array;
-      const view = new Float32Array(src.buffer, src.byteOffset, src.length);
-      const flatData = new Float32Array(view);
+      const dataCacheKey = [
+        this.selectorHash,
+        multiscaleLevel ?? 'base',
+        sX,
+        eX,
+        sY,
+        eY
+      ].join('/');
+      let cachedData = this.tileDataCache?.get(dataCacheKey);
+      if (!cachedData) {
+        const data = await ZarrTileProvider.throttle(() =>
+          zarr.get(currentArray, sliceArgs, { opts: { signal: controller.signal } })
+        );
+        const src = data.data as Float32Array;
+        const view = new Float32Array(src.buffer, src.byteOffset, src.length);
+        const flatData = new Float32Array(view);
+        cachedData = { data: flatData, sizeBytes: flatData.byteLength };
+        this.tileDataCache?.set(dataCacheKey, cachedData);
+      }
 
       const ascendingSliceStart = this.latAscending ? sY : dataHeight - eY;
       return await this.renderWithWebGL(
-        flatData,
+        cachedData.data,
         w,
         h,
         { fracWest, fracEast, fracSouth, fracNorth },

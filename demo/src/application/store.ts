@@ -1,7 +1,6 @@
 import { configureStore, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
 import type {
-  DataInfoType,
   LayersJsonType,
   LayersLegendType,
   SelectedLayer,
@@ -13,7 +12,7 @@ const URL_LAYERS_PARAM = 'layers';
 const URL_STATE_VERSION = 1;
 type JsonObject = Record<string, unknown>;
 
-interface ShareableLayer { r: string; o?: JsonObject; c?: SelectedLayer }
+interface ShareableLayer { r: string; o?: JsonObject }
 interface ShareableState { v: typeof URL_STATE_VERSION; l: ShareableLayer[] }
 
 export interface LayersState {
@@ -71,12 +70,12 @@ function removeRuntimeMetadata(layer: SelectedLayer): SelectedLayer {
 function createShareableState(selectedLayers: SelectedLayersType): ShareableState {
   return {
     v: URL_STATE_VERSION,
-    l: Object.entries(selectedLayers).map(([reference, selected]) => {
+    l: Object.entries(selectedLayers).flatMap(([reference, selected]) => {
       const layer = removeRuntimeMetadata(selected);
       const catalog = findCatalogLayer(reference);
-      if (!catalog) return { r: reference, c: layer };
+      if (!catalog) return [];
       const overrides = getOverrides(layer, catalog);
-      return overrides ? { r: reference, o: overrides as JsonObject } : { r: reference };
+      return [overrides ? { r: reference, o: overrides as JsonObject } : { r: reference }];
     })
   };
 }
@@ -86,9 +85,7 @@ function restoreShareableState(value: unknown): SelectedLayersType {
   return Object.fromEntries(value.l.flatMap(item => {
     if (!isPlainObject(item) || typeof item.r !== 'string') return [];
     const catalog = findCatalogLayer(item.r);
-    const layer = catalog
-      ? mergeOverrides(catalog, item.o)
-      : isPlainObject(item.c) ? item.c as unknown as SelectedLayer : undefined;
+    const layer = catalog ? mergeOverrides(catalog, item.o) : undefined;
     return layer ? [[item.r, layer] as const] : [];
   }));
 }
@@ -98,28 +95,11 @@ function readLayersFromUrl(): SelectedLayersType {
   const value = new URL(window.location.href).searchParams.get(URL_LAYERS_PARAM);
   if (!value) return {};
   try {
-    if (value.startsWith('{')) {
-      const legacy = JSON.parse(value);
-      return isPlainObject(legacy) ? legacy as SelectedLayersType : {};
-    }
     const decoded = decompressFromEncodedURIComponent(value);
     return decoded ? restoreShareableState(JSON.parse(decoded)) : {};
   } catch {
     return {};
   }
-}
-
-function createLayerList(selectedLayers: SelectedLayersType): LayersJsonType {
-  const list = structuredClone(layersJson);
-  Object.entries(selectedLayers).forEach(([reference, layer]) => {
-    const separator = reference.indexOf('_');
-    if (separator < 0) return;
-    const group = reference.slice(0, separator);
-    const name = reference.slice(separator + 1);
-    if (!list[group]) list[group] = { layerNames: {} };
-    if (!list[group].layerNames[name]) list[group].layerNames[name] = layer;
-  });
-  return list;
 }
 
 const initialSelectedLayers = readLayersFromUrl();
@@ -128,7 +108,7 @@ const initialState: LayersState = {
   actualLayer: '',
   layerAction: '',
   layerLegend: {},
-  listLayers: createLayerList(initialSelectedLayers)
+  listLayers: structuredClone(layersJson)
 };
 
 const layersSlice = createSlice({
@@ -139,11 +119,7 @@ const layersSlice = createSlice({
     setActualLayer(state, action: PayloadAction<string>) { state.actualLayer = action.payload; },
     setLayerAction(state, action: PayloadAction<string>) { state.layerAction = action.payload; },
     setLayerLegend(state, action: PayloadAction<LayersLegendType>) { state.layerLegend = action.payload; },
-    setListLayers(state, action: PayloadAction<LayersJsonType>) { state.listLayers = action.payload; },
-    addListLayer(state, action: PayloadAction<{ group: string; name: string; layer: DataInfoType }>) {
-      if (!state.listLayers[action.payload.group]) state.listLayers[action.payload.group] = { layerNames: {} };
-      state.listLayers[action.payload.group].layerNames[action.payload.name] = action.payload.layer;
-    }
+    setListLayers(state, action: PayloadAction<LayersJsonType>) { state.listLayers = action.payload; }
   }
 });
 

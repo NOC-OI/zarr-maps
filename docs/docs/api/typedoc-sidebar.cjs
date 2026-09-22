@@ -215,6 +215,16 @@ const typedocSidebar = {
             },
             {
               type: "doc",
+              id: "api/zarr-maps-tiling/interfaces/TileCacheOptions",
+              label: "TileCacheOptions"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/interfaces/TileCacheStats",
+              label: "TileCacheStats"
+            },
+            {
+              type: "doc",
               id: "api/zarr-maps-tiling/interfaces/TransectQueryOptions",
               label: "TransectQueryOptions"
             },

@@ -1,0 +1,25 @@
+{
+  "name": "zarr-maps-explorer",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Shared React UI for the zarr-maps and zarr-cesium demo explorers.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "dependencies": {
+    "react-draggable": "^4.5.0",
+    "uplot": "^1.6.32",
+    "zarr-maps-colormap": "^0.3.0",
+    "zarr-maps-tiling": "^0.3.0"
+  },
+  "peerDependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.0.0",
+    "@mui/material": "^7.0.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  }
+}

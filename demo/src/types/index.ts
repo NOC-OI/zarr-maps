@@ -1,6 +1,5 @@
-import type { BoundsProps, ZarrSelectors } from 'zarr-maps-tiling';
-import type { LeafletLayerOptions } from 'zarr-maps-leaflet';
-import type { OLLayerOptions } from 'zarr-maps-ol';
+import type { BoundsProps, ZarrTileOptions } from 'zarr-maps-tiling';
+import type { ExplorerInfoBox, ExplorerLayerLegend, FlashMessageValue } from 'zarr-maps-explorer';
 
 export interface keyable {
   [key: string]: any;
@@ -10,27 +9,9 @@ export interface LayerLegendBoxProps {
   layerLegendName: string;
 }
 
-export interface InfoButtonBoxType {
-  title?: string;
-  content?: React.ReactNode;
-  layerName?: string;
-  onClose?: () => void;
-}
+export type InfoButtonBoxType = ExplorerInfoBox;
 
-export interface TitilerOptions {
-  url: string;
-  variable: string;
-  scale?: [number, number];
-  colormap?: string;
-  opacity?: number;
-  selectors?: ZarrSelectors;
-}
-
-export interface FlashMessageType {
-  messageType: string;
-  content: string;
-  duration?: number;
-}
+export type FlashMessageType = FlashMessageValue;
 
 export interface DimensionLegendProps {
   values: (string | number)[];
@@ -49,22 +30,19 @@ export interface LayerNamesType {
 }
 
 export interface DataInfoType {
-  dataType: 'zarr-maps' | 'zarr-titiler';
+  dataType: 'zarr-maps';
   dataDescription: [string, string];
   bbox?: BoundsProps;
   content?: string;
-  params: LeafletLayerOptions | OLLayerOptions | TitilerOptions;
+  tags?: string[];
+  params: ZarrTileOptions & { opacity?: number };
 }
 
 export interface LayersLegendType {
   [key: string]: LayerLegendType;
 }
 
-export interface LayerLegendType {
-  dataDescription: [string, string];
-  colormap: string;
-  scale: [number, number];
-}
+export type LayerLegendType = ExplorerLayerLegend;
 
 export interface SelectedLayersType {
   [key: string]: SelectedLayer;
@@ -76,12 +54,6 @@ export interface SelectedLayer extends DataInfoType {
   pyramidLevels?: string[];
 }
 
-export interface FlashMessagesProps {
-  width: 'full' | 'small' | 'medium' | 'large';
-  duration: number;
-  position: 'bleft' | 'bright' | 'tright' | 'tleft' | 'tcenter' | 'bcenter';
-}
-
 export interface DimensionSelectorProps {
   dimension: string;
   values: (string | number)[];
@@ -90,24 +62,7 @@ export interface DimensionSelectorProps {
   layerLegendName: string;
 }
 
-export interface DataExplorationTypeOptionsProps {
-  content: string;
-  subLayer: string;
-  subLayers: LayerNamesType;
-  setInfoButtonBox: React.Dispatch<React.SetStateAction<InfoButtonBoxType>>;
-}
-
-export interface DataExplorationTypeProps {
-  content: string;
-  childs: LayerNamesType;
-  setInfoButtonBox: React.Dispatch<React.SetStateAction<InfoButtonBoxType>>;
-}
-
 export interface DataExplorationSelectionProps {
   display: boolean;
   setInfoButtonBox: React.Dispatch<React.SetStateAction<InfoButtonBoxType>>;
-}
-
-export interface AddCustomZarrDataProps {
-  display: boolean;
 }

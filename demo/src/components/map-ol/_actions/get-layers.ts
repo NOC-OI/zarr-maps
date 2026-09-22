@@ -1,4 +1,3 @@
-import { GetZarrLayer } from '../../../lib/map-layers/addZarrLayer';
 import type { DataInfoType, SelectedLayersType } from '../../../types';
 import { ZarrLayer, type OLLayerOptions } from 'zarr-maps-ol';
 import { IcechunkStore } from 'icechunk-js';
@@ -17,24 +16,18 @@ export async function generateSelectedLayer(
   const layer = findLayerById(map, actualLayer);
   if (layer) map.removeLayer(layer);
   try {
-    if (layerName.dataType === 'zarr-maps') {
-      const layer = await getZarrMapsLayer(layerName, actualLayer);
-      await updateSelectedLayersWithDimensions(
-        layer.provider,
-        actualLayer,
-        selectedLayers,
-        setSelectedLayers
-      );
-      if (!store.getState().layers.selectedLayers[actualLayer]) {
-        layer.provider.destroy();
-        return;
-      }
-      map.addLayer(layer);
-    } else if (layerName.dataType === 'zarr-titiler') {
-      const layer = await getZarrLayer(layerName, actualLayer);
-      if (!store.getState().layers.selectedLayers[actualLayer]) return;
-      map.addLayer(layer);
+    const layer = await getZarrMapsLayer(layerName, actualLayer);
+    await updateSelectedLayersWithDimensions(
+      layer.provider,
+      actualLayer,
+      selectedLayers,
+      setSelectedLayers
+    );
+    if (!store.getState().layers.selectedLayers[actualLayer]) {
+      layer.provider.destroy();
+      return;
     }
+    map.addLayer(layer);
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Error adding layer' };
   }
@@ -49,7 +42,6 @@ export async function updateSelectedLayersWithDimensions(
   if (!setSelectedLayers) return;
   const selected = selectedLayers[actualLayer];
   const dimensions: Record<string, { values: any; selected: any; indices?: number[] }> = {};
-  console.log('layer.dimensionValues:', layer.dimensionValues);
   Object.keys(layer.dimensionValues).forEach((dimKey: string) => {
     if (dimKey !== 'lat' && dimKey !== 'lon') {
       dimensions[dimKey] = {
@@ -74,10 +66,4 @@ export async function getZarrMapsLayer(layerName: DataInfoType, actualLayer: str
   await zarrLayer.load();
 
   return zarrLayer;
-}
-
-export async function getZarrLayer(layerName: DataInfoType, actualLayer: string) {
-  const zarrLayerClass = new GetZarrLayer(layerName, actualLayer, 'ol');
-  const layer = await zarrLayerClass.getTile();
-  return layer;
 }

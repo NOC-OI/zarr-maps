@@ -1,16 +1,16 @@
+import { createElement } from 'react';
 import type React from 'react';
-import { ZARR_TILE_SERVER_URL } from '../../../lib/map-layers/utils';
+import { LayerInfoPanel } from 'zarr-maps-explorer';
 import type {
   DataInfoType,
   LayerNamesType,
   LayersLegendType,
-  SelectedLayersType,
-  TitilerOptions
+  SelectedLayersType
 } from '../../../types';
 import { DEFAULT_COLORMAP, DEFAULT_OPACITY } from 'zarr-maps-tiling';
 
 export function handleChangeOpacity(
-  e: React.ChangeEvent<HTMLInputElement>,
+  opacity: number,
   setLayerAction: React.Dispatch<React.SetStateAction<string>>,
   setSelectedLayers: React.Dispatch<React.SetStateAction<SelectedLayersType>>,
   content: string,
@@ -45,7 +45,7 @@ export function handleChangeOpacity(
     })
   );
   setActualLayer(layerInfo.subLayer);
-  changeMapOpacity(layerInfo, parseFloat(e.target.value));
+  changeMapOpacity(layerInfo, opacity);
 }
 
 export function getPreviousOpacityValue(content: string, selectedLayers: SelectedLayersType) {
@@ -104,11 +104,15 @@ export function handleClickLayerInfo(
   content: string,
   subLayer: string,
   setInfoButtonBox: any,
-  selectedLayers: any
+  layer: DataInfoType
 ) {
   setInfoButtonBox({
-    title: `${content} - ${subLayer}`,
-    content: selectedLayers[`${content}_${subLayer}`].content
+    title: 'Layer details',
+    content: createElement(LayerInfoPanel, {
+      group: content,
+      layerId: subLayer,
+      content: layer.content
+    })
   });
 }
 
@@ -138,12 +142,8 @@ export async function addMapLayer(
 ) {
   setLayerAction('add');
   const newSelectedLayer = layerInfo.dataInfo;
-  if (['zarr-titiler', 'zarr-maps'].includes(newSelectedLayer.dataType)) {
-    newSelectedLayer.params.scale = newSelectedLayer.params.scale || [0, 1];
-    newSelectedLayer.params.colormap = newSelectedLayer.params.colormap
-      ? newSelectedLayer.params.colormap
-      : 'jet';
-  }
+  newSelectedLayer.params.scale = newSelectedLayer.params.scale || [0, 1];
+  newSelectedLayer.params.colormap = newSelectedLayer.params.colormap || 'jet';
   newSelectedLayer.params.opacity = DEFAULT_OPACITY;
   setSelectedLayers((selectedLayers: SelectedLayersType) => {
     const newSelectedLayers: SelectedLayersType = {
@@ -179,25 +179,7 @@ export async function handleChangeMapLayerAndAddLegend(
   content: string,
   setOpacityIsClicked?: React.Dispatch<React.SetStateAction<boolean>>
 ) {
-  if (checked) {
-    if (['zarr-titiler'].includes(layerInfo.dataInfo.dataType)) {
-      const params = layerInfo.dataInfo.params as TitilerOptions;
-      const layerUrl = params.url;
-      const url = `${ZARR_TILE_SERVER_URL}time_values?url=${encodeURIComponent(layerUrl)}`;
-
-      const response = await fetch(url);
-      const timeValues = await response.json();
-      layerInfo.dataInfo.dimensions = {
-        time: {
-          values: timeValues,
-          selected: 0
-        }
-      };
-      if (!layerInfo.dataInfo.params.colormap) {
-        layerInfo.dataInfo.params.colormap = DEFAULT_COLORMAP;
-      }
-    }
-  } else {
+  if (!checked) {
     const legendLayerName = `${content}_${subLayer}`;
     if (layerLegend[legendLayerName]) {
       setLayerLegend((layerLegend: LayersLegendType) => {

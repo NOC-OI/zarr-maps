@@ -1,6 +1,6 @@
 {
   "name": "zarr-maps-colormap",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Colormap definitions and color-ramp utilities for Zarr map renderers.",
   "repository": {
     "type": "git",

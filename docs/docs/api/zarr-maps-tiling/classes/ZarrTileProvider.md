@@ -138,6 +138,22 @@ Promise that resolves with the result of asynchronous dataset initialization.
 
 `Promise`\<`boolean`\>
 
+***
+
+### tileCacheStats
+
+#### Get Signature
+
+```ts
+get tileCacheStats(): TileCacheStats;
+```
+
+Current decoded tile-cache usage and lifetime hit/eviction counters.
+
+##### Returns
+
+[`TileCacheStats`](../interfaces/TileCacheStats.md)
+
 ## Methods
 
 ### abortTile()
@@ -153,6 +169,20 @@ Aborts an in-flight tile request.
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `key` | `string` | Tile key originally passed to [renderTile](#rendertile). |
+
+#### Returns
+
+`void`
+
+***
+
+### clearTileCache()
+
+```ts
+clearTileCache(): void;
+```
+
+Removes all decoded numeric tiles retained by this provider.
 
 #### Returns
 

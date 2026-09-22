@@ -12,6 +12,7 @@ import {
   changeMapDimensions,
   changeMapOpacity,
   findLayerById,
+  removeAllLayersFromMap,
   removeLayerFromMap
 } from './_actions/layers-handle';
 
@@ -221,6 +222,7 @@ export function MapLeaflet() {
         function: removeLayerFromMap,
         args: [actualLayer, listLayers, mapRef]
       },
+      'remove-all': { function: removeAllLayersFromMap, args: [mapRef] },
       add: { function: addLayerIntoMap, args: [] },
       opacity: {
         function: changeMapOpacity,
