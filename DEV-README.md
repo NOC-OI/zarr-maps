@@ -113,6 +113,7 @@ npm pkg set dependencies.zarr-maps-colormap="^$VERSION" \
 4. Optionally inspect package contents with `npm pack --workspace=<package> --dry-run`.
 5. Commit the version changes, create an annotated `v<version>` tag, and push it.
 
-Packages must be built and published in dependency order: colormap, tiling, then the Leaflet and
-OpenLayers adapters. When `zarr-maps-explorer` is added to the npm workflow, publish it after its
-`zarr-maps-colormap` dependency. Publishing requires the `NPM_TOKEN` repository secret.
+Packages are built and staged in dependency order: colormap, tiling, Explorer, then the Leaflet
+and OpenLayers adapters. The workflow uses npm trusted publishing (OIDC), configured with
+`npm stage publish` permission for `publish-npm.yml` on each package; no npm write token is stored
+in GitHub. After the workflow completes, review and approve each staged package in npm with 2FA.

@@ -1,12 +1,36 @@
 {
   "name": "zarr-maps-explorer",
   "version": "0.3.0",
-  "private": true,
   "description": "Shared React UI for the zarr-maps and zarr-cesium demo explorers.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noc-oi/zarr-maps.git",
+    "directory": "packages/zarr-maps-explorer"
+  },
   "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
     "./styles.css": "./src/styles.css"
+  },
+  "files": [
+    "dist",
+    "src/styles.css"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "prebuild": "npm run clean",
+    "build": "tsup src/index.ts --format esm --dts --sourcemap --external react --external react-dom --external @emotion/react --external @emotion/styled --external @mui/icons-material --external @mui/material --external zarr-maps-colormap --external zarr-maps-tiling",
+    "dev": "tsup src/index.ts --format esm --dts --sourcemap --external react --external react-dom --external @emotion/react --external @emotion/styled --external @mui/icons-material --external @mui/material --external zarr-maps-colormap --external zarr-maps-tiling --watch",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "react-draggable": "^4.5.0",
@@ -21,5 +45,9 @@
     "@mui/material": "^7.0.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.2",
+    "typescript": "^5.6.3"
   }
 }
