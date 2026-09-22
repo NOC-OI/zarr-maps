@@ -38,11 +38,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/noc-oi/zarr-maps.git",
+    "url": "git+https://github.com/NOC-OI/zarr-maps.git",
     "directory": "packages/zarr-maps-ol"
   },
   "bugs": {
-    "url": "https://github.com/noc-oi/zarr-maps/issues"
+    "url": "https://github.com/NOC-OI/zarr-maps/issues"
   },
   "homepage": "https://noc-oi.github.io/zarr-maps",
   "packageManager": "npm@10.9.8"

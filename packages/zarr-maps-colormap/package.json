@@ -4,7 +4,7 @@
   "description": "Colormap definitions and color-ramp utilities for Zarr map renderers.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/noc-oi/zarr-maps.git",
+    "url": "git+https://github.com/NOC-OI/zarr-maps.git",
     "directory": "packages/zarr-maps-colormap"
   },
   "license": "MIT",

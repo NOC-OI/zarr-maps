@@ -4,7 +4,7 @@
   "description": "Framework-independent Zarr tiling utilities for web maps.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/noc-oi/zarr-maps.git",
+    "url": "git+https://github.com/NOC-OI/zarr-maps.git",
     "directory": "packages/zarr-maps-tiling"
   },
   "license": "MIT",
