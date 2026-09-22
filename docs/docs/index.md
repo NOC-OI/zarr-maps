@@ -38,7 +38,7 @@ It provides **Leaflet and OpenLayers layers** that stream and render multidimens
 
 ## Packages
 
-Zarr-maps is a collection of four packages. Most applications install one of the map-library adapters; npm installs the shared tiling and colormap packages with it.
+Zarr-maps is a collection of four packages. Most applications install one map-library adapter; npm installs the shared tiling and colormap packages with it.
 
 ### `zarr-maps-tiling`
 

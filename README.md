@@ -27,7 +27,6 @@ framework-independent tiling engine.
 | [`zarr-maps-ol`](packages/zarr-maps-ol) | OpenLayers tile-layer adapter and the recommended entry point for OpenLayers applications. |
 | [`zarr-maps-tiling`](packages/zarr-maps-tiling) | Shared Zarr data-access, querying, tile-selection, caching, and WebGL rendering engine. |
 | [`zarr-maps-colormap`](packages/zarr-maps-colormap) | Framework-independent colormap definitions and color-ramp utilities. Based on [jscolormaps](https://github.com/timothygebhard/js-colormaps). |
-| [`zarr-maps-explorer`](packages/zarr-maps-explorer) | Reusable React components and styles for building dataset explorers, legends, controls, and query panels. |
 
 ### The shared tiling engine
 
@@ -43,8 +42,6 @@ also makes the provider usable directly when developing another integration.
 ```text
 zarr-maps-colormap ──→ zarr-maps-tiling ──┬──→ zarr-maps-leaflet
                                           └──→ zarr-maps-ol
-
-zarr-maps-colormap ──→ zarr-maps-explorer
 ```
 
 ## Overview
@@ -101,12 +98,11 @@ npm install zarr-maps-leaflet zarr-maps-ol
 
 Install only the adapter for the map library you use. Each adapter installs the shared tiling and colormap packages automatically.
 
-The supporting packages can also be installed directly. Use the tiling package when building a
-custom map integration, the colormap package for custom legends or color ramps, and the Explorer
-package for reusable React interface components:
+The published supporting packages can also be installed directly. Use the tiling package when
+building a custom map integration and the colormap package for custom legends or color ramps:
 
 ```bash
-npm install zarr-maps-tiling zarr-maps-colormap zarr-maps-explorer
+npm install zarr-maps-tiling zarr-maps-colormap
 ```
 
 ```ts
