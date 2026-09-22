@@ -13,7 +13,39 @@
 
 ![Zarr-maps Demo Screenshot](docs/assets/demo-interaction.gif)
 
-> Example of visualizing a Zarr dataset in Leaflet and Openlayers maps using zarr-maps. You can dynamically change time slices, colormaps, and scale ranges.
+> Example of visualizing a Zarr dataset in Leaflet and OpenLayers maps using zarr-maps. You can dynamically change time slices, colormaps, and scale ranges.
+
+## Package organisation
+
+Zarr-maps is a monorepo of small, independently published packages. The primary public APIs are
+the Leaflet and OpenLayers adapters; both are deliberately thin integrations over the same
+framework-independent tiling engine.
+
+| Package | Role |
+| --- | --- |
+| [`zarr-maps-leaflet`](packages/zarr-maps-leaflet) | Leaflet `L.GridLayer` adapter and the recommended entry point for Leaflet applications. |
+| [`zarr-maps-ol`](packages/zarr-maps-ol) | OpenLayers tile-layer adapter and the recommended entry point for OpenLayers applications. |
+| [`zarr-maps-tiling`](packages/zarr-maps-tiling) | Shared Zarr data-access, querying, tile-selection, caching, and WebGL rendering engine. |
+| [`zarr-maps-colormap`](packages/zarr-maps-colormap) | Framework-independent colormap definitions and color-ramp utilities. Based on [jscolormaps](https://github.com/timothygebhard/js-colormaps). |
+| [`zarr-maps-explorer`](packages/zarr-maps-explorer) | Reusable React components and styles for building dataset explorers, legends, controls, and query panels. |
+
+### The shared tiling engine
+
+`zarr-maps-tiling` contains the map-independent core of the toolkit. Its
+`ZarrTileProvider` opens Zarr v2/v3 or Zarrita-compatible stores, discovers dimensions and
+multiscale levels, selects the appropriate data for a geographic tile, and renders that tile with
+WebGL. It also provides the point, time-series, vertical-profile, and transect query APIs.
+
+The Leaflet and OpenLayers packages translate each library's tile lifecycle into calls to this
+provider. This keeps data interpretation and rendering consistent between both map libraries and
+also makes the provider usable directly when developing another integration.
+
+```text
+zarr-maps-colormap ──→ zarr-maps-tiling ──┬──→ zarr-maps-leaflet
+                                          └──→ zarr-maps-ol
+
+zarr-maps-colormap ──→ zarr-maps-explorer
+```
 
 ## Overview
 
@@ -69,16 +101,16 @@ npm install zarr-maps-leaflet zarr-maps-ol
 
 Install only the adapter for the map library you use. Each adapter installs the shared tiling and colormap packages automatically.
 
-Colormap utilities are published separately for applications that build custom legends or
-color ramps:
+The supporting packages can also be installed directly. Use the tiling package when building a
+custom map integration, the colormap package for custom legends or color ramps, and the Explorer
+package for reusable React interface components:
 
 ```bash
-npm install zarr-maps-colormap
+npm install zarr-maps-tiling zarr-maps-colormap zarr-maps-explorer
 ```
 
 ```ts
 import { allColorScales, colormapBuilder, type ColorMapName } from 'zarr-maps-colormap';
-import { DEFAULT_COLORMAP, DEFAULT_OPACITY, DEFAULT_SCALE } from 'zarr-maps-tiling';
 ```
 
 ---
@@ -158,21 +190,13 @@ map.addLayer(zarrLayer);
 
 ## Architecture
 
-The toolkit provides two key layers components for Leaflet and OpenLayers, backed by a shared data provider that handles Zarr access and WebGL rendering:
+The two map adapters expose similar `ZarrLayer` APIs backed by `ZarrTileProvider`:
 
 | Component                  | Purpose                 | Description                                                                     |
 | -------------------------- | ----------------------- | ------------------------------------------------------------------------------- |
 | `ZarrLayer` for Leaflet    | Leaflet layer           | A `L.GridLayer` that Leaflet controls (tile lifecycle, zoom, redraw).           |
 | `ZarrLayer` for OpenLayers | OpenLayers layer        | An `ol/layer/Tile` that OpenLayers controls (tile lifecycle, zoom, redraw).     |
 | `ZarrTileProvider`         | Data + rendering engine | Opens Zarr, loads metadata/dimensions, fetches slices, renders tiles via WebGL. |
-| `zarr-maps-colormap`       | Colormap utilities      | Framework-independent colormap names, interpolators, and color-ramp builders.  |
-
-The packages are published independently in dependency order:
-
-```text
-zarr-maps-colormap → zarr-maps-tiling → zarr-maps-leaflet
-                                      ↳ zarr-maps-ol
-```
 
 ## Icechunk and custom stores
 

@@ -1,6 +1,6 @@
 {
   "name": "zarr-maps-leaflet",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A Leaflet integration library for visualizing Zarr datasets.",
   "author": "Tobias <tobias.ferreira@noc.ac.uk>",
   "license": "MIT",
@@ -25,8 +25,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "zarr-maps-colormap": "^0.2.0",
-    "zarr-maps-tiling": "^0.2.0"
+    "zarr-maps-colormap": "^0.3.0",
+    "zarr-maps-tiling": "^0.3.0"
   },
   "peerDependencies": {
     "leaflet": "*"
@@ -39,11 +39,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/noc-oi/zarr-maps.git",
+    "url": "git+https://github.com/NOC-OI/zarr-maps.git",
     "directory": "packages/zarr-maps-leaflet"
   },
   "bugs": {
-    "url": "https://github.com/noc-oi/zarr-maps/issues"
+    "url": "https://github.com/NOC-OI/zarr-maps/issues"
   },
   "homepage": "https://noc-oi.github.io/zarr-maps",
   "packageManager": "npm@10.9.8"

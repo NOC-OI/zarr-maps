@@ -1,10 +1,10 @@
 {
   "name": "zarr-maps-tiling",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Framework-independent Zarr tiling utilities for web maps.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/noc-oi/zarr-maps.git",
+    "url": "git+https://github.com/NOC-OI/zarr-maps.git",
     "directory": "packages/zarr-maps-tiling"
   },
   "license": "MIT",
@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "proj4": "^2.19.10",
-    "zarr-maps-colormap": "^0.2.0",
+    "zarr-maps-colormap": "^0.3.0",
     "zarrita": "^0.7.4"
   },
   "devDependencies": {

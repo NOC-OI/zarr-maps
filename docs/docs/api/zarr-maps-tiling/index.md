@@ -22,6 +22,26 @@ Private HTTP stores can use `requestOverrides` for static fetch options or `tran
 for per-object headers, credentials, proxies, and signed URLs. `onAuthError` is called once for
 HTTP 400/401 responses so applications can refresh expired credentials.
 
+Decoded numeric tiles are cached per provider so changing the colormap or scale can redraw
+without reading the same Zarr slice again. The default per-layer budget assumes no more than
+five active layers: 8 MiB on devices with up to 2 GiB, 16 MiB up to 4 GiB, 32 MiB up to 8 GiB,
+and 64 MiB above that. Browsers that do not expose a device-memory hint use 32 MiB.
+
+```ts
+const provider = new ZarrTileProvider({
+  url: 'https://example.com/data.zarr',
+  variable: 'temperature',
+  cache: { maxBytes: 16 * 1024 * 1024 }
+});
+
+console.log(provider.tileCacheStats);
+provider.clearTileCache();
+```
+
+Caching defaults to `true`. Set `cache: false` (or `cache: &#123; enabled: false &#125;`) to disable it.
+The budget is per layer, so five layers configured
+with 16 MiB can retain at most 80 MiB of decoded tile data in total.
+
 From the `zarr-maps` repository root, build all packages with:
 
 ```sh
@@ -52,6 +72,8 @@ npm run build
 | [QueryResult](interfaces/QueryResult.md) | Values and coordinates returned from a shared Zarr query. |
 | [RequestOverrides](interfaces/RequestOverrides.md) | Serializable static fetch options suitable for application state and FetchStore. |
 | [RequestParameters](interfaces/RequestParameters.md) | - |
+| [TileCacheOptions](interfaces/TileCacheOptions.md) | Controls the in-memory cache used to recolor tiles without reading Zarr data again. |
+| [TileCacheStats](interfaces/TileCacheStats.md) | Runtime counters for a provider's decoded tile cache. |
 | [TransectQueryOptions](interfaces/TransectQueryOptions.md) | Sampling controls for one-level and full-depth transects. |
 | [TransectResult](interfaces/TransectResult.md) | A one-level transect. Values preserve no-data gaps as null. |
 | [XYLimits](interfaces/XYLimits.md) | Describes the XY coordinate boundaries of a dataset. |

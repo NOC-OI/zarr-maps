@@ -6,6 +6,7 @@ export const layersJson: LayersJsonType = {
       icechunk_precipitation: {
         dataType: 'zarr-maps',
         dataDescription: ['Precipitation', 'mm/hr'],
+        tags: ['icechunk', 'epsg:4326'],
         content:
           'Virtualized NASA IMERG precipitation stored in Icechunk with native multiscales.',
         params: {
@@ -20,6 +21,7 @@ export const layersJson: LayersJsonType = {
       salinity_pyramid_geozarr: {
         dataType: 'zarr-maps',
         dataDescription: ['Salinity', ''],
+        tags: ['V3', 'multiscale', 'geozarr', 'epsg:4326'],
         content:
           'Salinity outputs from NEMO NPD-EORCA1 model. This dataset contains 3D data (time, latitude, longitude) stored in a Zarr v2 format and EPSG:4326 coordinate reference system.',
         params: {
@@ -30,12 +32,13 @@ export const layersJson: LayersJsonType = {
           zarrVersion: 3,
           colormap: 'inferno',
           multiscaleFormat: 'geozarr',
-          latIsAscending: true,
+          latIsAscending: true
         }
       },
       salinity_pyramid_v2: {
         dataType: 'zarr-maps',
         dataDescription: ['Salinity', ''],
+        tags: ['V2', 'multiscale', 'epsg:3857'],
         content:
           'Salinity outputs from NEMO NPD-EORCA1 model. This dataset contains 3D data (time, latitude, longitude) stored in a Zarr v2 format with a multiscale pyramid structure and EPSG:3857 coordinate reference system.',
         params: {
@@ -54,6 +57,7 @@ export const layersJson: LayersJsonType = {
       'temperature-pyramid_v3': {
         dataType: 'zarr-maps',
         dataDescription: ['Temperature', 'deg C'],
+        tags: ['V3', 'multiscale', 'epsg:3857'],
         content:
           'Temperature outputs from NEMO NPD-EORCA1 model. This dataset contains 3D temperature data (time, latitude, longitude) stored in a Zarr v3 format with a multiscale pyramid structure and EPSG:3857 coordinate reference system.',
         params: {
@@ -72,6 +76,7 @@ export const layersJson: LayersJsonType = {
       'temperature-4d_pyramid_v3': {
         dataType: 'zarr-maps',
         dataDescription: ['Temperature', 'deg C'],
+        tags: ['V3', 'multiscale', 'epsg:3857'],
         content:
           'Temperature outputs from NEMO NPD-EORCA025 model. This dataset contains 4D temperature data (time, depth, latitude, longitude) stored in a Zarr v3 format with a multiscale pyramid structure and EPSG:3857 coordinate reference system.',
         params: {
@@ -89,7 +94,8 @@ export const layersJson: LayersJsonType = {
       },
       pressure_florence_v3: {
         dataType: 'zarr-maps',
-        dataDescription: ['Wind Speed', 'm/s'],
+        dataDescription: ['Surface pressure', 'Pa'],
+        tags: ['V3', 'atm', 'epsg:4326'],
         content:
           'Surface pressure data for Hurricane Florence from ERA5 reanalysis. This dataset contains 3D surface pressure data (time, latitude, longitude) stored in a Zarr v3 format and EPSG:4326 coordinate reference system.',
         params: {
@@ -97,7 +103,7 @@ export const layersJson: LayersJsonType = {
           variable: 'surface_pressure',
           zarrVersion: 3,
           colormap: 'jet',
-          scale: [100000, 104000],
+          scale: [75000, 104000],
           noDataMin: 0,
           noDataMax: 999999,
           crs: undefined,
@@ -105,21 +111,6 @@ export const layersJson: LayersJsonType = {
           dimensionNames: undefined,
           tileSize: undefined,
           maxZoom: undefined
-        }
-      }
-    }
-  },
-  Titiler: {
-    layerNames: {
-      sos_abs_v2: {
-        dataType: 'zarr-titiler',
-        dataDescription: ['Salinity', ''],
-        content:
-          'Salinity outputs from NEMO NPD-EORCA1 model. This dataset contains 3D data (time, latitude, longitude) stored in a Zarr v2 format and EPSG:4326 coordinate reference system.',
-        params: {
-          url: 'https://atlantis-vis-o.s3-ext.jc.rl.ac.uk/nemotest101/T1d/sos_abs.zarr',
-          variable: 'sos_abs',
-          scale: [30, 37]
         }
       }
     }

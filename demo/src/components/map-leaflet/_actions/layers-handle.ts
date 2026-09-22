@@ -3,6 +3,7 @@ import { DEFAULT_BOUNDS } from '../../../lib/map-layers/utils';
 import type { LayersJsonType, SelectedLayersType } from '../../../types';
 import { generateSelectedLayer, updateSelectedLayersWithDimensions } from './get-layers';
 import { DEFAULT_OPACITY } from 'zarr-maps-tiling';
+import { ZarrLayer } from 'zarr-maps-leaflet';
 
 export function getBoundsFromBBox(bbox: number[] | null): [[number, number], [number, number]] {
   if (!bbox || bbox.length !== 4) return DEFAULT_BOUNDS;
@@ -47,6 +48,19 @@ export function removeLayerFromMap(
   }
 }
 
+export function removeAllLayersFromMap(mapRef: React.RefObject<L.Map>): void {
+  const map = mapRef.current;
+  if (!map) return;
+  const layers: ZarrLayer[] = [];
+  map.eachLayer(layer => {
+    if (layer instanceof ZarrLayer) layers.push(layer);
+  });
+  layers.forEach(layer => {
+    map.removeLayer(layer);
+    layer.provider.destroy();
+  });
+}
+
 export async function changeMapOpacity(
   actualLayer: string,
   selectedLayers: SelectedLayersType,
@@ -68,17 +82,7 @@ export async function changeMapOpacity(
   const layer: any = findLayerById(map, actualLayer);
   if (!layer) return;
 
-  if (layerInfo.dataType === 'zarr-maps') {
-    if (typeof layer.updateStyle === 'function') {
-      layer.updateStyle({ opacity });
-    } else if (typeof layer.setOpacity === 'function') {
-      layer.setOpacity(opacity);
-    }
-  } else {
-    if (typeof layer.setOpacity === 'function') {
-      layer.setOpacity(opacity);
-    }
-  }
+  layer.updateStyle({ opacity });
 }
 
 export async function changeMapColors(
@@ -89,7 +93,16 @@ export async function changeMapColors(
   const map = mapRef.current;
   if (!map) return;
 
+  const layerInfo = selectedLayers[actualLayer];
   const existing: any = findLayerById(map, actualLayer);
+  if (existing) {
+    existing.updateStyle({
+      colormap: layerInfo.params.colormap,
+      scale: layerInfo.params.scale
+    });
+    return;
+  }
+
   if (existing) map.removeLayer(existing);
 
   await generateSelectedLayer(actualLayer, selectedLayers, mapRef, undefined);
@@ -109,13 +122,8 @@ export async function changeMapDimensions(
 
   const layer: any = findLayerById(map, actualLayer);
 
-  if (layerInfo.dataType === 'zarr-maps' && layer) {
-    if (typeof layer.updateSelectors === 'function') {
-      layer.updateSelectors(layerInfo.params.selectors);
-    } else if (layer.provider?.updateSelectors) {
-      layer.provider.updateSelectors(layerInfo.params.selectors);
-      layer.redraw?.();
-    }
+  if (layer) {
+    layer.updateSelectors(layerInfo.params.selectors);
 
     const provider = layer.provider;
     if (provider) {
@@ -123,6 +131,5 @@ export async function changeMapDimensions(
     }
     return;
   }
-  if (layer) map.removeLayer(layer);
   await generateSelectedLayer(actualLayer, selectedLayers, mapRef, setSelectedLayers);
 }

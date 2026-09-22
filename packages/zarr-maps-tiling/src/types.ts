@@ -123,6 +123,12 @@ export type QueryPosition = [longitude: number, latitude: number];
 /** Minimal interface required by the framework-neutral convenience queries. */
 export interface QueryBackend {
   dimensionValues: DimensionValues;
+  /**
+   * Coordinate values addressable by the current in-memory query backend.
+   * Defaults to `dimensionValues`; subset-backed providers can expose a
+   * narrower set without hiding the complete dataset coordinates.
+   */
+  readonly queryDimensionValues?: DimensionValues;
   selectors: ZarrSelectors;
   /** Global index represented by local coordinate index zero, for subset-backed providers. */
   readonly queryIndexOffsets?: Record<string, number>;
@@ -218,6 +224,32 @@ export interface ZarrTileOptions {
   latIsAscending?: boolean;
   /** Rendering convention used by the consuming map framework. */
   renderTarget?: 'web-map' | 'cesium';
+  /**
+   * Decoded numeric tile cache. Enabled by default. Pass `false` to disable it,
+   * or an options object to configure its per-provider byte budget.
+   */
+  cache?: boolean | TileCacheOptions;
+}
+
+/** Controls the in-memory cache used to recolor tiles without reading Zarr data again. */
+export interface TileCacheOptions {
+  /** Enable decoded tile caching. Defaults to `true`. */
+  enabled?: boolean;
+  /**
+   * Maximum decoded bytes retained by one provider. When omitted, a device-aware
+   * budget between 8 and 64 MiB is selected, assuming at most five active layers.
+   */
+  maxBytes?: number;
+}
+
+/** Runtime counters for a provider's decoded tile cache. */
+export interface TileCacheStats {
+  entries: number;
+  bytes: number;
+  maxBytes: number;
+  hits: number;
+  misses: number;
+  evictions: number;
 }
 
 /** Serializable static fetch options suitable for application state and FetchStore. */

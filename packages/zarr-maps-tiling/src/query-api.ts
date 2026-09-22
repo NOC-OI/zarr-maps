@@ -15,7 +15,7 @@ function throwIfAborted(signal?: AbortSignal): void {
 }
 
 function requireDimension(backend: QueryBackend, dimension: 'time' | 'elevation') {
-  const values = backend.dimensionValues[dimension];
+  const values = (backend.queryDimensionValues ?? backend.dimensionValues)[dimension];
   if (!values?.length) throw new Error(`The dataset has no queryable ${dimension} dimension`);
   return values;
 }

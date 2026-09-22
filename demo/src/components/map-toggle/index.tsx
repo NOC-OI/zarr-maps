@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import styles from './MapToogle.module.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export function MapToggle() {
@@ -20,30 +19,25 @@ export function MapToggle() {
 
   return (
     <div
-      id="dimensions_toogle"
-      className="text-[1rem] z-9998! font-extrabold leading-6 uppercase pl-0 sm:pl-3 pt-3 cursor-pointer"
+      id="map_toggle"
+      className="z-[9998] pl-2 pt-1 sm:pl-3"
     >
-      <label className={`${styles.switch} relative cursor-pointer`}>
-        <input type="checkbox" checked={mapIsOL} onChange={handleChangeMapLibrary} />
-        <span className={`${styles.slider} ${styles.slider_animation}`}></span>
-        <div
-          className="absolute flex gap-2.5 -mt-6 text-[14px] pl-1.5 text-gray-200 font-changa"
-          title="Toggle Map Library (Leaflet / OpenLayers)"
-        >
-          <div className="flex items-center justify-center">
+      <label className="relative flex h-9 cursor-pointer items-center rounded-[10px] border border-white/18 bg-[rgba(17,17,17,0.88)] p-1 shadow-[0_8px_24px_rgba(0,0,0,.3)] backdrop-blur-xl">
+        <input className="peer sr-only" type="checkbox" checked={mapIsOL} onChange={handleChangeMapLibrary} />
+        <span className="absolute left-1 top-1 h-[26px] w-8 rounded-md bg-[#d49511] transition-transform duration-200 peer-checked:translate-x-8" />
+        <div className="relative z-10 grid h-[26px] w-8 place-items-center" title="Use Leaflet">
             <img
               src={`${import.meta.env.BASE_URL}leaflet-logo.png`}
               alt="Leaflet Icon"
-              className="ml-0 h-7 w-7 mt-1.5"
+              className="h-5 w-5"
             />
-          </div>
-          <div className="flex items-center justify-center">
+        </div>
+        <div className="relative z-10 grid h-[26px] w-8 place-items-center" title="Use OpenLayers">
             <img
               src={`${import.meta.env.BASE_URL}ol-logo.png`}
               alt="OpenLayers Icon"
-              className="h-7 w-7 mt-1.5"
+              className="h-5 w-5"
             />
-          </div>
         </div>
       </label>
     </div>

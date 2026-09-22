@@ -12,6 +12,18 @@ dimensionValues: DimensionValues;
 
 ***
 
+### queryDimensionValues?
+
+```ts
+readonly optional queryDimensionValues: DimensionValues;
+```
+
+Coordinate values addressable by the current in-memory query backend.
+Defaults to `dimensionValues`; subset-backed providers can expose a
+narrower set without hiding the complete dataset coordinates.
+
+***
+
 ### queryIndexOffsets?
 
 ```ts
