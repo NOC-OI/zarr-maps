@@ -41,8 +41,9 @@ jobs:
         run: |
           WORKSPACE="zarr-maps-colormap"
 
-          NAME=$(npm pkg get name --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
-          VERSION=$(npm pkg get version --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+          PACKAGE_JSON="packages/$WORKSPACE/package.json"
+          NAME=$(jq -r '.name' "$PACKAGE_JSON")
+          VERSION=$(jq -r '.version' "$PACKAGE_JSON")
 
           echo "Checking $NAME@$VERSION"
 
@@ -64,8 +65,9 @@ jobs:
         run: |
           WORKSPACE="zarr-maps-tiling"
 
-          NAME=$(npm pkg get name --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
-          VERSION=$(npm pkg get version --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+          PACKAGE_JSON="packages/$WORKSPACE/package.json"
+          NAME=$(jq -r '.name' "$PACKAGE_JSON")
+          VERSION=$(jq -r '.version' "$PACKAGE_JSON")
 
           echo "Checking $NAME@$VERSION"
 
@@ -87,8 +89,9 @@ jobs:
         run: |
           WORKSPACE="zarr-maps-explorer"
 
-          NAME=$(npm pkg get name --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
-          VERSION=$(npm pkg get version --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+          PACKAGE_JSON="packages/$WORKSPACE/package.json"
+          NAME=$(jq -r '.name' "$PACKAGE_JSON")
+          VERSION=$(jq -r '.version' "$PACKAGE_JSON")
 
           echo "Checking $NAME@$VERSION"
 
@@ -110,8 +113,9 @@ jobs:
         run: |
           WORKSPACE="zarr-maps-leaflet"
 
-          NAME=$(npm pkg get name --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
-          VERSION=$(npm pkg get version --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+          PACKAGE_JSON="packages/$WORKSPACE/package.json"
+          NAME=$(jq -r '.name' "$PACKAGE_JSON")
+          VERSION=$(jq -r '.version' "$PACKAGE_JSON")
 
           echo "Checking $NAME@$VERSION"
 
@@ -133,8 +137,9 @@ jobs:
         run: |
           WORKSPACE="zarr-maps-ol"
 
-          NAME=$(npm pkg get name --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
-          VERSION=$(npm pkg get version --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+          PACKAGE_JSON="packages/$WORKSPACE/package.json"
+          NAME=$(jq -r '.name' "$PACKAGE_JSON")
+          VERSION=$(jq -r '.version' "$PACKAGE_JSON")
 
           echo "Checking $NAME@$VERSION"
 
