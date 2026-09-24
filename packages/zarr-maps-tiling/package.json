@@ -1,6 +1,6 @@
 {
   "name": "zarr-maps-tiling",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Framework-independent Zarr tiling utilities for web maps.",
   "repository": {
     "type": "git",

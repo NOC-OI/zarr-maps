@@ -1,6 +1,6 @@
 {
   "name": "zarr-maps-explorer",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Shared React UI for the zarr-maps and zarr-cesium demo explorers.",
   "license": "MIT",
   "repository": {
@@ -36,7 +36,7 @@
     "react-draggable": "^4.5.0",
     "uplot": "^1.6.32",
     "zarr-maps-colormap": "^0.3.0",
-    "zarr-maps-tiling": "^0.3.0"
+    "zarr-maps-tiling": "^0.3.1"
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",
