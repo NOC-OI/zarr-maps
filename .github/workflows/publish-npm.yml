@@ -12,6 +12,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -29,32 +30,117 @@ jobs:
       - name: Install dependencies
         run: npm ci --include=dev
 
+      # ------------------------------------------------------------
+      # zarr-maps-colormap
+      # ------------------------------------------------------------
+
       - name: Build zarr-maps-colormap
         run: npm run build:colormap
 
       - name: Stage zarr-maps-colormap
-        run: npm stage publish --workspace=zarr-maps-colormap --access public
+        run: |
+          WORKSPACE="zarr-maps-colormap"
+
+          NAME=$(npm pkg get name --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+          VERSION=$(npm pkg get version --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+
+          echo "Checking $NAME@$VERSION"
+
+          if npm view "$NAME@$VERSION" version > /dev/null 2>&1; then
+            echo "$NAME@$VERSION already exists on npm. Skipping."
+          else
+            echo "Staging $NAME@$VERSION"
+            npm stage publish --workspace="$WORKSPACE" --access public
+          fi
+
+      # ------------------------------------------------------------
+      # zarr-maps-tiling
+      # ------------------------------------------------------------
 
       - name: Build zarr-maps-tiling
         run: npm run build:tiling
 
       - name: Stage zarr-maps-tiling
-        run: npm stage publish --workspace=zarr-maps-tiling --access public
+        run: |
+          WORKSPACE="zarr-maps-tiling"
+
+          NAME=$(npm pkg get name --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+          VERSION=$(npm pkg get version --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+
+          echo "Checking $NAME@$VERSION"
+
+          if npm view "$NAME@$VERSION" version > /dev/null 2>&1; then
+            echo "$NAME@$VERSION already exists on npm. Skipping."
+          else
+            echo "Staging $NAME@$VERSION"
+            npm stage publish --workspace="$WORKSPACE" --access public
+          fi
+
+      # ------------------------------------------------------------
+      # zarr-maps-explorer
+      # ------------------------------------------------------------
 
       - name: Build zarr-maps-explorer
         run: npm run build:explorer
 
       - name: Stage zarr-maps-explorer
-        run: npm stage publish --workspace=zarr-maps-explorer --access public
+        run: |
+          WORKSPACE="zarr-maps-explorer"
+
+          NAME=$(npm pkg get name --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+          VERSION=$(npm pkg get version --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+
+          echo "Checking $NAME@$VERSION"
+
+          if npm view "$NAME@$VERSION" version > /dev/null 2>&1; then
+            echo "$NAME@$VERSION already exists on npm. Skipping."
+          else
+            echo "Staging $NAME@$VERSION"
+            npm stage publish --workspace="$WORKSPACE" --access public
+          fi
+
+      # ------------------------------------------------------------
+      # zarr-maps-leaflet
+      # ------------------------------------------------------------
 
       - name: Build zarr-maps-leaflet
         run: npm run build:leaflet
 
       - name: Stage zarr-maps-leaflet
-        run: npm stage publish --workspace=zarr-maps-leaflet --access public
+        run: |
+          WORKSPACE="zarr-maps-leaflet"
+
+          NAME=$(npm pkg get name --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+          VERSION=$(npm pkg get version --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+
+          echo "Checking $NAME@$VERSION"
+
+          if npm view "$NAME@$VERSION" version > /dev/null 2>&1; then
+            echo "$NAME@$VERSION already exists on npm. Skipping."
+          else
+            echo "Staging $NAME@$VERSION"
+            npm stage publish --workspace="$WORKSPACE" --access public
+          fi
+
+      # ------------------------------------------------------------
+      # zarr-maps-ol
+      # ------------------------------------------------------------
 
       - name: Build zarr-maps-ol
         run: npm run build:ol
 
       - name: Stage zarr-maps-ol
-        run: npm stage publish --workspace=zarr-maps-ol --access public
+        run: |
+          WORKSPACE="zarr-maps-ol"
+
+          NAME=$(npm pkg get name --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+          VERSION=$(npm pkg get version --workspace="$WORKSPACE" | jq -r 'to_entries[0].value')
+
+          echo "Checking $NAME@$VERSION"
+
+          if npm view "$NAME@$VERSION" version > /dev/null 2>&1; then
+            echo "$NAME@$VERSION already exists on npm. Skipping."
+          else
+            echo "Staging $NAME@$VERSION"
+            npm stage publish --workspace="$WORKSPACE" --access public
+          fi
