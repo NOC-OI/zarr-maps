@@ -1549,7 +1549,11 @@ export class ZarrTileProvider {
     gl.uniform1f(this.uniforms.u_max, this.colorScale.max);
     gl.uniform1f(this.uniforms.u_noDataMin, this.noDataMin as number);
     gl.uniform1f(this.uniforms.u_noDataMax, this.noDataMax as number);
-    gl.uniform1f(this.uniforms.u_fillValue, this.fillValue as number);
+    // R32F rounds uploaded samples to float32, so round the uniform identically.
+    gl.uniform1f(
+      this.uniforms.u_fillValue,
+      this.useFillValue ? Math.fround(this.fillValue as number) : 0
+    );
     gl.uniform1i(this.uniforms.u_useFillValue, this.useFillValue ? 1 : 0);
     // WebGL treats the first uploaded row as the bottom of the texture. Arrays
     // ordered north-to-south therefore need a vertical texture flip; arrays
