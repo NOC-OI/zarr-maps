@@ -38,12 +38,6 @@ console.log(provider.tileCacheStats);
 provider.clearTileCache();
 ```
 
-To investigate device-specific WebGL masking, set `webglDiagnostics: true` on the provider.
-The browser console will report the GPU renderer, shader precision, texture-upload errors,
-and a one-time count of NaN, infinite, fill, and out-of-range samples. It also reports the
-Zarr-native `fillValue` separately because Zarr fill values are not always missing-data markers.
-Disable the option after diagnosis to avoid scanning the first rendered tile.
-
 Caching defaults to `true`. Set `cache: false` (or `cache: { enabled: false }`) to disable it.
 The budget is per layer, so five layers configured
 with 16 MiB can retain at most 80 MiB of decoded tile data in total.

@@ -223,8 +223,6 @@ export class ZarrTileProvider {
   private latIsAscendingOverride?: boolean;
   private latAscending = false;
   private renderTarget: 'web-map' | 'cesium';
-  private webglDiagnostics: boolean = true;
-  private hasLoggedDataDiagnostics = false;
 
   private noDataMin: number | undefined;
   private noDataMax: number | undefined;
@@ -298,7 +296,6 @@ export class ZarrTileProvider {
     this.customStore = options.store;
     this.latIsAscendingOverride = options.latIsAscending;
     this.renderTarget = options.renderTarget ?? 'web-map';
-    this.webglDiagnostics = options.webglDiagnostics ?? false;
     const cacheOptions =
       typeof options.cache === 'object' ? options.cache : undefined;
     const requestedCacheBytes = cacheOptions?.maxBytes;
@@ -1081,24 +1078,6 @@ export class ZarrTileProvider {
       return;
     }
 
-    if (this.webglDiagnostics) {
-      const rendererInfo = gl.getExtension('WEBGL_debug_renderer_info');
-      console.info('[zarr-maps] WebGL diagnostics', {
-        userAgent: typeof navigator === 'undefined' ? 'unknown' : navigator.userAgent,
-        vendor: gl.getParameter(gl.VENDOR),
-        renderer: gl.getParameter(gl.RENDERER),
-        unmaskedVendor: rendererInfo
-          ? gl.getParameter(rendererInfo.UNMASKED_VENDOR_WEBGL)
-          : 'unavailable',
-        unmaskedRenderer: rendererInfo
-          ? gl.getParameter(rendererInfo.UNMASKED_RENDERER_WEBGL)
-          : 'unavailable',
-        version: gl.getParameter(gl.VERSION),
-        shadingLanguageVersion: gl.getParameter(gl.SHADING_LANGUAGE_VERSION),
-        fragmentHighFloat: gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT)
-      });
-    }
-
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
     if (!vertexShader || !fragmentShader) {
@@ -1456,61 +1435,6 @@ export class ZarrTileProvider {
     return this._emptyCanvas;
   }
 
-  private logWebGLDataDiagnostics(
-    gl: WebGL2RenderingContext,
-    data: Float32Array,
-    width: number,
-    height: number
-  ): void {
-    if (!this.webglDiagnostics) return;
-
-    const uploadError = gl.getError();
-    if (uploadError !== gl.NO_ERROR) {
-      console.error('[zarr-maps] R32F texture upload failed', {
-        error: uploadError,
-        width,
-        height
-      });
-    }
-    if (this.hasLoggedDataDiagnostics) return;
-
-    let nan = 0;
-    let infinite = 0;
-    let fill = 0;
-    let belowRange = 0;
-    let aboveRange = 0;
-    const float32Fill = this.useFillValue ? Math.fround(this.fillValue as number) : undefined;
-    for (const raw of data) {
-      if (Number.isNaN(raw)) nan++;
-      else if (!Number.isFinite(raw)) infinite++;
-      else if (float32Fill !== undefined && raw === float32Fill) fill++;
-      else {
-        const value = raw * this.scaleFactor + this.offset;
-        if (value < (this.noDataMin as number)) belowRange++;
-        else if (value > (this.noDataMax as number)) aboveRange++;
-      }
-    }
-    console.info('[zarr-maps] First data texture no-data summary', {
-      variable: this.variable,
-      width,
-      height,
-      samples: data.length,
-      nan,
-      infinite,
-      fill,
-      belowRange,
-      aboveRange,
-      fillValue: this.fillValue,
-      zarrArrayFillValue: this.zarrArray?.fillValue,
-      uploadedFillValue: float32Fill,
-      scaleFactor: this.scaleFactor,
-      addOffset: this.offset,
-      noDataMin: this.noDataMin,
-      noDataMax: this.noDataMax
-    });
-    this.hasLoggedDataDiagnostics = true;
-  }
-
   private async renderWithWebGL(
     data: Float32Array,
     width: number,
@@ -1532,7 +1456,6 @@ export class ZarrTileProvider {
     const dataTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, dataTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, data);
-    this.logWebGLDataDiagnostics(gl, data, width, height);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 

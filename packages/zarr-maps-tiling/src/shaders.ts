@@ -38,9 +38,6 @@ export const fragmentShaderSource = `#version 300 es
       vec2 sampleCoord = u_flipY ? vec2(v_texCoord.x, 1.0 - v_texCoord.y) : v_texCoord;
       float raw = texture(u_dataTexture, sampleCoord).r;
 
-      // Fill values describe the packed/raw array representation and must be
-      // tested before scale_factor and add_offset are applied. Math.fround on
-      // the CPU makes u_fillValue use the same float32 representation as R32F.
       bool isInvalidRaw = isnan(raw) || isinf(raw);
       bool isFill = u_useFillValue && raw == u_fillValue;
 
