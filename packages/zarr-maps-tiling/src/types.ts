@@ -225,6 +225,11 @@ export interface ZarrTileOptions {
   /** Rendering convention used by the consuming map framework. */
   renderTarget?: 'web-map' | 'cesium';
   /**
+   * Log WebGL renderer details, texture-upload errors, and a one-time summary
+   * of raw no-data values. Intended for diagnosing device-specific rendering.
+   */
+  webglDiagnostics?: boolean;
+  /**
    * Decoded numeric tile cache. Enabled by default. Pass `false` to disable it,
    * or an options object to configure its per-provider byte budget.
    */

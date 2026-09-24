@@ -38,15 +38,21 @@ export const fragmentShaderSource = `#version 300 es
       vec2 sampleCoord = u_flipY ? vec2(v_texCoord.x, 1.0 - v_texCoord.y) : v_texCoord;
       float raw = texture(u_dataTexture, sampleCoord).r;
 
-      float value = raw * u_scaleFactor + u_addOffset;
+      // Fill values describe the packed/raw array representation and must be
+      // tested before scale_factor and add_offset are applied. Math.fround on
+      // the CPU makes u_fillValue use the same float32 representation as R32F.
+      bool isInvalidRaw = isnan(raw) || isinf(raw);
+      bool isFill = u_useFillValue && raw == u_fillValue;
 
-      bool isNaN = (value != value);
-      bool isNoData = (value < u_noDataMin || value > u_noDataMax);
-      bool isFill = (u_useFillValue && abs(value - u_fillValue) < 1e-6);
-
-      if (isNaN || isNoData || isFill) {
+      if (isInvalidRaw || isFill) {
           discard;
       }
+
+      float value = raw * u_scaleFactor + u_addOffset;
+      bool isInvalidValue = isnan(value) || isinf(value);
+      bool isNoData = value < u_noDataMin || value > u_noDataMax;
+
+      if (isInvalidValue || isNoData) discard;
 
       float normalized = clamp((value - u_min) / (u_max - u_min), 0.0, 1.0);
 
