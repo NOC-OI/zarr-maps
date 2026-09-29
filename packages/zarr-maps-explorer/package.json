@@ -1,6 +1,6 @@
 {
   "name": "zarr-maps-explorer",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Shared React UI for the zarr-maps and zarr-cesium demo explorers.",
   "license": "MIT",
   "repository": {
