@@ -1,6 +1,6 @@
 {
   "name": "zarr-maps-explorer",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Shared React UI for the zarr-maps and zarr-cesium demo explorers.",
   "license": "MIT",
   "repository": {
@@ -28,15 +28,14 @@
   ],
   "scripts": {
     "prebuild": "npm run clean",
-    "build": "tsup src/index.ts --format esm --dts --sourcemap --external react --external react-dom --external @emotion/react --external @emotion/styled --external @mui/icons-material --external @mui/material --external zarr-maps-colormap --external zarr-maps-tiling",
-    "dev": "tsup src/index.ts --format esm --dts --sourcemap --external react --external react-dom --external @emotion/react --external @emotion/styled --external @mui/icons-material --external @mui/material --external zarr-maps-colormap --external zarr-maps-tiling --watch",
+    "build": "tsup src/index.ts --format esm --dts --sourcemap --external react --external react-dom --external @emotion/react --external @emotion/styled --external @mui/icons-material --external @mui/material --external zarr-maps-colormap",
+    "dev": "tsup src/index.ts --format esm --dts --sourcemap --external react --external react-dom --external @emotion/react --external @emotion/styled --external @mui/icons-material --external @mui/material --external zarr-maps-colormap --watch",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "react-draggable": "^4.5.0",
     "uplot": "^1.6.32",
-    "zarr-maps-colormap": "^0.3.0",
-    "zarr-maps-tiling": "^0.3.1"
+    "zarr-maps-colormap": "^0.3.0"
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",
