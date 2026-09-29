@@ -1,6 +1,7 @@
 import * as zarr from 'zarrita';
 import { colormapBuilder, type ColorMapName } from 'zarr-maps-colormap';
 import { DEFAULT_COLORMAP } from './constants';
+import { limitStoreRequests } from './request-limiter';
 import {
   calculateNearestIndex,
   calculateSliceArgsRequestImage,
@@ -19,7 +20,8 @@ function createTransformedFetch(
 ): typeof fetch {
   let authErrorReported = false;
   return async (input, init) => {
-    const originalUrl = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const originalUrl =
+      typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     const transformed = await transformRequest(originalUrl, {
       method: (init?.method as 'GET' | 'HEAD' | undefined) ?? 'GET'
     });
@@ -271,8 +273,6 @@ export class ZarrTileProvider {
   private destroyed = false;
 
   private static readonly concurrencyLimit = 15;
-  private static activeRequests = 0;
-  private static readonly queue: (() => void)[] = [];
 
   /**
    * Creates the framework-independent Zarr tile renderer.
@@ -296,8 +296,7 @@ export class ZarrTileProvider {
     this.customStore = options.store;
     this.latIsAscendingOverride = options.latIsAscending;
     this.renderTarget = options.renderTarget ?? 'web-map';
-    const cacheOptions =
-      typeof options.cache === 'object' ? options.cache : undefined;
+    const cacheOptions = typeof options.cache === 'object' ? options.cache : undefined;
     const requestedCacheBytes = cacheOptions?.maxBytes;
     const cacheBytes =
       requestedCacheBytes === undefined
@@ -883,12 +882,15 @@ export class ZarrTileProvider {
 
   private async initialize(): Promise<boolean> {
     try {
-      this.store = this.customStore ?? new zarr.FetchStore(this.url, {
-        ...(this.requestOverrides ? { overrides: this.requestOverrides } : {}),
-        ...(this.transformRequest
-          ? { fetch: createTransformedFetch(this.transformRequest, this.onAuthError) }
-          : {})
-      });
+      const store =
+        this.customStore ??
+        new zarr.FetchStore(this.url, {
+          ...(this.requestOverrides ? { overrides: this.requestOverrides } : {}),
+          ...(this.transformRequest
+            ? { fetch: createTransformedFetch(this.transformRequest, this.onAuthError) }
+            : {})
+        });
+      this.store = limitStoreRequests(store, ZarrTileProvider.concurrencyLimit);
       this.root = zarr.root(this.store);
 
       const { zarrArray, levelInfos, dimIndices, attrs } = await initZarrDataset(
@@ -1150,20 +1152,6 @@ export class ZarrTileProvider {
     this.colorTexture = createColorRampTexture(this.gl, this.colorScale.colors, 1);
   }
 
-  private static async throttle<T>(fn: () => Promise<T>): Promise<T> {
-    if (this.activeRequests >= this.concurrencyLimit) {
-      await new Promise<void>(resolve => this.queue.push(resolve));
-    }
-    this.activeRequests++;
-    try {
-      return await fn();
-    } finally {
-      this.activeRequests--;
-      const next = this.queue.shift();
-      if (next) next();
-    }
-  }
-
   private choosePyramidLevel(z: number): string | null {
     if (!this.levelInfos.length) return null;
 
@@ -1381,19 +1369,12 @@ export class ZarrTileProvider {
         this.selectors
       );
 
-      const dataCacheKey = [
-        this.selectorHash,
-        multiscaleLevel ?? 'base',
-        sX,
-        eX,
-        sY,
-        eY
-      ].join('/');
+      const dataCacheKey = [this.selectorHash, multiscaleLevel ?? 'base', sX, eX, sY, eY].join('/');
       let cachedData = this.tileDataCache?.get(dataCacheKey);
       if (!cachedData) {
-        const data = await ZarrTileProvider.throttle(() =>
-          zarr.get(currentArray, sliceArgs, { opts: { signal: controller.signal } })
-        );
+        const data = await zarr.get(currentArray, sliceArgs, {
+          opts: { signal: controller.signal }
+        });
         const src = data.data as Float32Array;
         const view = new Float32Array(src.buffer, src.byteOffset, src.length);
         const flatData = new Float32Array(view);

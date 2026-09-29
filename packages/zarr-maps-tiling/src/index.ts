@@ -6,4 +6,5 @@ export * from './shaders';
 export * from './decodeCFTime';
 export * from './mercator-utils';
 export * from './query-api';
+export * from './request-limiter';
 export * from './zarr-tile-provider';
