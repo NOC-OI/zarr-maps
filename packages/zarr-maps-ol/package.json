@@ -1,6 +1,6 @@
 {
   "name": "zarr-maps-ol",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "An OpenLayers integration library for visualizing Zarr datasets.",
   "author": "Tobias <tobias.ferreira@noc.ac.uk>",
   "license": "MIT",
@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "zarr-maps-colormap": "^0.3.0",
-    "zarr-maps-tiling": "^0.3.2"
+    "zarr-maps-tiling": "^0.3.3"
   },
   "peerDependencies": {
     "ol": "*"
