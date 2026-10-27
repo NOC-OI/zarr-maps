@@ -34,5 +34,5 @@ The layer supports custom Zarrita stores such as Icechunk, authenticated request
 
 | Interface | Description |
 | ------ | ------ |
-| [OLLayerOptions](interfaces/OLLayerOptions.md) | Configuration for a 2D raster (image) layer visualization in OpenLayers. |
+| [OLLayerOptions](interfaces/OLLayerOptions.md) | Configuration for a 2D raster (image) layer visualization in OpenLayers. The inherited `crs` and `proj4` options describe the rectilinear Zarr source grid. |
 | [ZarrImageElement](interfaces/ZarrImageElement.md) | - |

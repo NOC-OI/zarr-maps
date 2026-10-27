@@ -45,6 +45,30 @@ layer.addTo(map);
 
 Calling `load()` opens the dataset, reads its metadata and dimensions, detects its coordinate reference system, and prepares it for tile requests. Leaflet then requests visible tiles as the map moves or zooms.
 
+## Projected source grids
+
+`crs` describes the Zarr source grid, not the Leaflet map. Regular rectilinear
+grids can use any CRS understood by proj4. EPSG:4326 and EPSG:3857 work without
+additional definitions. Provide `proj4` for an identifier that proj4 does not
+already know:
+
+```ts
+const polarLayer = new ZarrLayer({
+  id: 'sea-ice-age',
+  url: 'https://example.com/sea-ice-age.zarr',
+  variable: 'age_of_sea_ice',
+  crs: 'EPSG:3408',
+  proj4: '+proj=laea +lat_0=90 +lon_0=0 +x_0=0 +y_0=0 +a=6371228 +b=6371228 +units=m +no_defs',
+  dimensionNames: { lon: 'x', lat: 'y', time: 'time' },
+  selectors: { time: { selected: 0, type: 'index' } }
+});
+```
+
+The definition may alternatively be published as proj4, WKT2, PROJJSON,
+`spatial_ref`, or `crs_wkt` metadata. Spatial X and Y coordinates must be
+separate one-dimensional monotonic axes. Two-dimensional curvilinear grids are
+not currently supported.
+
 ## Select a multidimensional slice
 
 Use `selectors` to choose values for non-spatial dimensions such as time or elevation. A selector may refer to an array index or to the nearest coordinate value.

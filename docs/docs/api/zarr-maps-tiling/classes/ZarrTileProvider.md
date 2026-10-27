@@ -65,7 +65,7 @@ coverageBoundsMerc:
 ### crs
 
 ```ts
-crs: CRS | null = null;
+crs: string | null = null;
 ```
 
 Detected or configured coordinate reference system.

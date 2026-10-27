@@ -18,6 +18,36 @@ export const layersJson: LayersJsonType = {
           crs: 'EPSG:4326'
         }
       },
+      sea_ice_age_epsg3408: {
+        dataType: 'zarr-maps',
+        dataDescription: ['Sea ice age', 'years'],
+        tags: ['V3', 'polar', 'epsg:3408', 'proj4'],
+        content:
+          'NSIDC sea-ice age data on a north-polar Lambert azimuthal equal-area grid. This example exercises client-side reprojection from EPSG:3408 in both Leaflet and OpenLayers.',
+        params: {
+          url: 'https://atlantis-vis-o.s3-ext.jc.rl.ac.uk/openday/age_of_sea_ice.zarr',
+          variable: 'age_of_sea_ice',
+          zarrVersion: 3,
+          crs: 'EPSG:3408',
+          proj4:
+            '+proj=laea +lat_0=90 +lon_0=0 +x_0=0 +y_0=0 +a=6371228 +b=6371228 +units=m +no_defs',
+          colormap: 'cool',
+          scale: [0, 5],
+          noDataMin: 0.5,
+          noDataMax: 19.5,
+          selectors: {
+            time: {
+              selected: 0,
+              type: 'index'
+            }
+          },
+          dimensionNames: {
+            lon: 'x',
+            lat: 'y',
+            time: 'time'
+          }
+        }
+      },
       salinity_pyramid_geozarr: {
         dataType: 'zarr-maps',
         dataDescription: ['Salinity', ''],

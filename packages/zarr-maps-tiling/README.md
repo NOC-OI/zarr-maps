@@ -1,5 +1,27 @@
 # zarr-maps-tiling
 
+Regular rectilinear Zarr grids can use any source CRS understood by proj4. Pass a
+registered identifier through `crs`, provide an unregistered proj4/WKT2/PROJJSON
+definition through `proj4`, or publish `proj:code`, `proj:wkt2`, or `proj:projjson`
+metadata. Coverage, point queries, and tile rendering use the same resolved
+WGS84-to-source transform. Curvilinear two-dimensional spatial coordinates are
+not supported and are rejected during initialization.
+
+```ts
+const provider = new ZarrTileProvider({
+  url: 'https://example.com/polar.zarr',
+  variable: 'temperature',
+  crs: 'EPSG:3408',
+  proj4: '+proj=laea +lat_0=90 +lon_0=0 +x_0=0 +y_0=0 +a=6371228 +b=6371228 +units=m +no_defs',
+  dimensionNames: { lon: 'x', lat: 'y' },
+  renderTarget: 'web-map'
+});
+```
+
+`renderTarget` is set by framework adapters. It determines the internal output
+tiling convention: Web Mercator for web-map adapters and geographic tiles for
+Cesium. The output projection is deliberately not part of the public API.
+
 Framework-independent utilities for loading, slicing, styling, and rendering tiled Zarr data.
 
 The package contains the shared data pipeline used by `zarr-maps-leaflet`, `zarr-maps-ol`, and `zarr-cesium`. It does not

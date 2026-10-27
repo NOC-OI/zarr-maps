@@ -34,4 +34,4 @@ The layer supports custom Zarrita stores such as Icechunk, authenticated request
 
 | Interface | Description |
 | ------ | ------ |
-| [LeafletLayerOptions](interfaces/LeafletLayerOptions.md) | Configuration for a 2D raster (image) layer visualization in Leaflet. |
+| [LeafletLayerOptions](interfaces/LeafletLayerOptions.md) | Configuration for a 2D raster (image) layer visualization in Leaflet. The inherited `crs` and `proj4` options describe the rectilinear Zarr source grid. |
