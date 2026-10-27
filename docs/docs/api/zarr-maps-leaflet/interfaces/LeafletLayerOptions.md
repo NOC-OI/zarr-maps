@@ -1,6 +1,8 @@
 # LeafletLayerOptions
 
 Configuration for a 2D raster (image) layer visualization in Leaflet.
+The inherited `crs` and `proj4` options describe the rectilinear Zarr source
+grid; Leaflet continues to request tiles using geographic map bounds.
 
 ## Extends
 
@@ -42,7 +44,7 @@ ZarrTileOptions.colormap
 ### crs?
 
 ```ts
-optional crs: CRS | null;
+optional crs: string | null;
 ```
 
 #### Inherited from
@@ -165,6 +167,22 @@ ZarrTileOptions.onAuthError
 
 ```ts
 optional opacity: number;
+```
+
+***
+
+### proj4?
+
+```ts
+optional proj4: CRSDefinition;
+```
+
+Proj4, WKT2, or PROJJSON definition for a CRS not registered by proj4.
+
+#### Inherited from
+
+```ts
+ZarrTileOptions.proj4
 ```
 
 ***

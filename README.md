@@ -71,7 +71,7 @@ It is designed for fast, on-demand raster visualization in Leaflet and OpenLayer
   Uses `ol/layer/Tile` to request tiles based on current map view.
 
 - **CRS-aware**
-  Supports EPSG:4326 (Geographic) and EPSG:3857 (Web Mercator) with automatic detection.
+  Reprojects regular rectilinear grids from any source CRS understood by proj4. Definitions may come from metadata, a registered identifier, or the `proj4` option.
 
 - **On-demand streaming**
   Only the required slices are fetched and decoded dynamically.

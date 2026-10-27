@@ -9,6 +9,11 @@ export const DEFAULT_COLORMAP = 'viridis';
 export const EARTH_RADIUS = 6378137;
 
 /**
+ * Size of a mebibyte in bytes.
+ */
+export const MIB = 1024 * 1024;
+
+/**
  * Maximum latitude in degrees for Web Mercator projection.
  */
 export const MAX_LAT = 85.05112878;

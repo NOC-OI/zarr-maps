@@ -206,6 +206,8 @@ export interface ZarrTileOptions {
   store?: zarr.Readable;
   variable: string;
   crs?: CRS | null;
+  /** Proj4, WKT2, or PROJJSON definition for a CRS not registered by proj4. */
+  proj4?: CRSDefinition;
   tileSize?: number;
   maxZoom?: number;
   scale?: [number, number];
@@ -279,10 +281,20 @@ export interface XYLimitsProps {
   yMax: number;
 }
 
-/**
- * Supported Coordinate Reference Systems.
- */
-export type CRS = 'EPSG:4326' | 'EPSG:3857';
+/** CRS identifier understood by proj4 (for example `EPSG:4326` or `EPSG:32630`). */
+export type CRS = string;
+
+/** Projection definition accepted by proj4. */
+export type CRSDefinition = string | Record<string, unknown>;
+
+/** Validated transformation between WGS84 and a rectilinear source grid. */
+export interface ResolvedCRS {
+  code: string;
+  definition?: CRSDefinition;
+  geographic: boolean;
+  forward(position: [number, number]): [number, number];
+  inverse(position: [number, number]): [number, number];
+}
 
 /** Supported conventions for discovering multiscale Zarr levels. */
 export type MultiscaleFormat = 'auto' | 'legacy' | 'geozarr';
