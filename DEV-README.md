@@ -105,7 +105,6 @@ npm pkg set dependencies.zarr-maps-colormap="^$VERSION" \
   --workspace=zarr-maps-ol
 
 npm pkg set dependencies.zarr-maps-colormap="^$VERSION" \
-  dependencies.zarr-maps-tiling="^$VERSION" \
   --workspace=zarr-maps-explorer
 ```
 
