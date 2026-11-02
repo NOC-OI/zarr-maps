@@ -1,6 +1,7 @@
 import * as zarr from 'zarrita';
 import { colormapBuilder, type ColorMapName } from 'zarr-maps-colormap';
 import { DEFAULT_COLORMAP } from './constants';
+import { limitStoreRequests } from './request-limiter';
 import {
   calculateNearestIndex,
   calculateSliceArgsRequestImage,
@@ -12,39 +13,24 @@ import {
   openLevelArray,
   resolveNoDataRange
 } from './zarr-utils';
-
-function createTransformedFetch(
-  transformRequest: NonNullable<ZarrTileOptions['transformRequest']>,
-  onAuthError?: ZarrTileOptions['onAuthError']
-): typeof fetch {
-  let authErrorReported = false;
-  return async (input, init) => {
-    const originalUrl = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    const transformed = await transformRequest(originalUrl, {
-      method: (init?.method as 'GET' | 'HEAD' | undefined) ?? 'GET'
-    });
-    const headers = new Headers(input instanceof Request ? input.headers : undefined);
-    new Headers(init?.headers).forEach((value, key) => headers.set(key, value));
-    new Headers(transformed.headers).forEach((value, key) => headers.set(key, value));
-    const response = await fetch(transformed.url, { ...init, ...transformed, headers });
-    if (!authErrorReported && onAuthError && (response.status === 400 || response.status === 401)) {
-      authErrorReported = true;
-      onAuthError(response.status);
-    }
-    return response;
-  };
-}
+import { createFetchStore, createTransformedFetch } from './store-utils';
 import { createColorRampTexture, createProgram, createShader } from './webgl-utils';
 import { vertexShaderSource, fragmentShaderSource } from './shaders';
 import { latDegToMercY, lonDegToMercX } from './mercator-utils';
+import { resolveCRS, sourceBoundsToGeographic } from './projection';
 import {
   getFullTransect as queryFullTransect,
   getTimeSeries as queryTimeSeries,
   getTransect as queryTransect,
-  getVerticalProfile as queryVerticalProfile
+  getVerticalProfile as queryVerticalProfile,
+  streamFullTransect as queryFullTransectStream,
+  streamTimeSeries as queryTimeSeriesStream,
+  streamTransect as queryTransectStream,
+  streamVerticalProfile as queryVerticalProfileStream
 } from './query-api';
 import type {
   CRS,
+  CRSDefinition,
   DimensionNamesProps,
   DimIndicesProps,
   XYLimits,
@@ -54,93 +40,21 @@ import type {
   ZarrSelectors,
   QueryGeometry,
   QueryOptions,
+  QueryStreamOptions,
   QueryResult,
   QueryPosition,
+  ResolvedCRS,
   TransectQueryOptions,
   TransectResult,
+  TransectStreamChunk,
   FullTransectResult,
+  FullTransectStreamChunk,
   MultiscaleFormat,
   ZarrTileOptions,
   TileCacheStats
 } from './types';
+import { defaultTileCacheBytes, TileDataCache } from './cache';
 
-const MIB = 1024 * 1024;
-
-/**
- * Selects a conservative per-layer budget while allowing up to five active
- * layers. `deviceMemory` is deliberately treated as a hint, not an allowance.
- */
-function defaultTileCacheBytes(): number {
-  if (typeof navigator === 'undefined') return 32 * MIB;
-  const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
-  if (deviceMemory === undefined) return 32 * MIB;
-  if (deviceMemory <= 2) return 8 * MIB;
-  if (deviceMemory <= 4) return 16 * MIB;
-  if (deviceMemory <= 8) return 32 * MIB;
-  return 64 * MIB;
-}
-
-interface CachedTileData {
-  data: Float32Array;
-  sizeBytes: number;
-}
-
-class TileDataCache {
-  private entries = new Map<string, CachedTileData>();
-  private bytes = 0;
-  private hits = 0;
-  private misses = 0;
-  private evictions = 0;
-
-  constructor(readonly maxBytes: number) {}
-
-  get(key: string): CachedTileData | undefined {
-    const entry = this.entries.get(key);
-    if (!entry) {
-      this.misses++;
-      return undefined;
-    }
-    this.hits++;
-    this.entries.delete(key);
-    this.entries.set(key, entry);
-    return entry;
-  }
-
-  set(key: string, entry: CachedTileData): void {
-    if (this.maxBytes <= 0 || entry.sizeBytes > this.maxBytes) return;
-    const previous = this.entries.get(key);
-    if (previous) {
-      this.bytes -= previous.sizeBytes;
-      this.entries.delete(key);
-    }
-    this.entries.set(key, entry);
-    this.bytes += entry.sizeBytes;
-    while (this.bytes > this.maxBytes) {
-      const oldestKey = this.entries.keys().next().value as string | undefined;
-      if (oldestKey === undefined) break;
-      const oldest = this.entries.get(oldestKey)!;
-      this.entries.delete(oldestKey);
-      this.bytes -= oldest.sizeBytes;
-      this.evictions++;
-    }
-  }
-
-  clear(): void {
-    this.entries.clear();
-    this.bytes = 0;
-  }
-
-  get stats(): TileCacheStats {
-    return {
-      entries: this.entries.size,
-      bytes: this.bytes,
-      maxBytes: this.maxBytes,
-      hits: this.hits,
-      misses: this.misses,
-      evictions: this.evictions
-    };
-  }
-}
 
 /**
  * Provides Zarr dataset access and rendering capabilities for web-map layers.
@@ -177,6 +91,22 @@ export class ZarrTileProvider {
     return queryVerticalProfile(this, position, selectors, options);
   }
 
+  streamTimeSeries(
+    position: QueryPosition,
+    selectors?: ZarrSelectors,
+    options?: QueryStreamOptions
+  ) {
+    return queryTimeSeriesStream(this, position, selectors, options);
+  }
+
+  streamVerticalProfile(
+    position: QueryPosition,
+    selectors?: ZarrSelectors,
+    options?: QueryStreamOptions
+  ) {
+    return queryVerticalProfileStream(this, position, selectors, options);
+  }
+
   /**
    * Samples one selected level along a line between two WGS84 positions.
    *
@@ -211,6 +141,24 @@ export class ZarrTileProvider {
     return queryFullTransect(this, start, end, selectors, options);
   }
 
+  streamTransect(
+    start: QueryPosition,
+    end: QueryPosition,
+    selectors?: ZarrSelectors,
+    options?: TransectQueryOptions & { chunkSize?: number }
+  ): AsyncGenerator<TransectStreamChunk> {
+    return queryTransectStream(this, start, end, selectors, options);
+  }
+
+  streamFullTransect(
+    start: QueryPosition,
+    end: QueryPosition,
+    selectors?: ZarrSelectors,
+    options?: TransectQueryOptions & { chunkSize?: number }
+  ): AsyncGenerator<FullTransectStreamChunk> {
+    return queryFullTransectStream(this, start, end, selectors, options);
+  }
+
   private url: string;
   private variable: string;
   private zarrVersion: 2 | 3 | null;
@@ -223,6 +171,11 @@ export class ZarrTileProvider {
   private latIsAscendingOverride?: boolean;
   private latAscending = false;
   private renderTarget: 'web-map' | 'cesium';
+  private displayProjection: 'geographic' | 'web-mercator';
+  private projectionDefinition?: CRSDefinition;
+  private projection: ResolvedCRS | null = null;
+  /** Source-grid pixel-edge bounds used by the reprojection mesh. */
+  private sourceEdgeBounds: XYLimits | null = null;
 
   private noDataMin: number | undefined;
   private noDataMax: number | undefined;
@@ -249,6 +202,7 @@ export class ZarrTileProvider {
   private levelMetadata: Map<number, ZarrLevelMetadata> = new Map();
   private xyLimits: XYLimits | null = null;
   private geographicLonOffset360: { west: number; span: number } | null = null;
+  private geographicLongitudeIsGlobal = false;
 
   public coverageBoundsDeg: { west: number; south: number; east: number; north: number } | null =
     null;
@@ -271,8 +225,6 @@ export class ZarrTileProvider {
   private destroyed = false;
 
   private static readonly concurrencyLimit = 15;
-  private static activeRequests = 0;
-  private static readonly queue: (() => void)[] = [];
 
   /**
    * Creates the framework-independent Zarr tile renderer.
@@ -296,8 +248,9 @@ export class ZarrTileProvider {
     this.customStore = options.store;
     this.latIsAscendingOverride = options.latIsAscending;
     this.renderTarget = options.renderTarget ?? 'web-map';
-    const cacheOptions =
-      typeof options.cache === 'object' ? options.cache : undefined;
+    this.displayProjection = this.renderTarget === 'cesium' ? 'geographic' : 'web-mercator';
+    this.projectionDefinition = options.proj4;
+    const cacheOptions = typeof options.cache === 'object' ? options.cache : undefined;
     const requestedCacheBytes = cacheOptions?.maxBytes;
     const cacheBytes =
       requestedCacheBytes === undefined
@@ -311,7 +264,7 @@ export class ZarrTileProvider {
     this.crs = options.crs || null;
     this.tileSize = options.tileSize ?? 256;
 
-    this.selectors = options.selectors || {};
+    this.selectors = cloneSelectors(options.selectors);
     this.noDataMin = options.noDataMin;
     this.noDataMax = options.noDataMax;
 
@@ -397,7 +350,7 @@ export class ZarrTileProvider {
         !this.selectors[k] ||
         JSON.stringify(this.selectors[k]) !== JSON.stringify(selectors[k])
       ) {
-        this.selectors[k] = selectors[k];
+        this.selectors[k] = cloneSelectors({ [k]: selectors[k] })[k];
         changed = true;
       }
     }
@@ -458,24 +411,9 @@ export class ZarrTileProvider {
         : await this.getArrayForZoom(Math.max(0, Math.floor(options.level)));
     this.throwIfQueryAborted(options.signal);
 
-    let xFraction: number;
-    if (this.crs === 'EPSG:4326' && this.geographicLonOffset360) {
-      const normalize = (value: number) => ((value % 360) + 360) % 360;
-      const { west, span } = this.geographicLonOffset360;
-      let normalizedLongitude = normalize(longitude);
-      if (normalizedLongitude < west) normalizedLongitude += 360;
-      xFraction = (normalizedLongitude - west) / span;
-    } else {
-      if (longitude < bounds.west || longitude > bounds.east) return emptyResult();
-      xFraction = (longitude - bounds.west) / (bounds.east - bounds.west);
-    }
-
-    const sourceLatitude = this.crs === 'EPSG:3857' ? latDegToMercY(latitude) : latitude;
-    const sourceSouth = this.crs === 'EPSG:3857' ? this.coverageBoundsMerc!.yMin : bounds.south;
-    const sourceNorth = this.crs === 'EPSG:3857' ? this.coverageBoundsMerc!.yMax : bounds.north;
-    const yFraction = this.latAscending
-      ? (sourceLatitude - sourceSouth) / (sourceNorth - sourceSouth)
-      : (sourceNorth - sourceLatitude) / (sourceNorth - sourceSouth);
+    const fractions = this.sourceFractions(longitude, latitude);
+    if (!fractions) return emptyResult();
+    const [xFraction, yFraction] = fractions;
     const x = Math.max(0, Math.min(dataWidth - 1, Math.floor(xFraction * dataWidth)));
     const y = Math.max(0, Math.min(dataHeight - 1, Math.floor(yFraction * dataHeight)));
 
@@ -700,23 +638,9 @@ export class ZarrTileProvider {
         latitude > bounds.north
       )
         continue;
-      let xFraction: number;
-      if (this.crs === 'EPSG:4326' && this.geographicLonOffset360) {
-        const normalize = (value: number) => ((value % 360) + 360) % 360;
-        const { west, span } = this.geographicLonOffset360;
-        let normalized = normalize(longitude);
-        if (normalized < west) normalized += 360;
-        xFraction = (normalized - west) / span;
-      } else {
-        if (longitude < bounds.west || longitude > bounds.east) continue;
-        xFraction = (longitude - bounds.west) / (bounds.east - bounds.west);
-      }
-      const sourceLatitude = this.crs === 'EPSG:3857' ? latDegToMercY(latitude) : latitude;
-      const sourceSouth = this.crs === 'EPSG:3857' ? this.coverageBoundsMerc!.yMin : bounds.south;
-      const sourceNorth = this.crs === 'EPSG:3857' ? this.coverageBoundsMerc!.yMax : bounds.north;
-      const yFraction = this.latAscending
-        ? (sourceLatitude - sourceSouth) / (sourceNorth - sourceSouth)
-        : (sourceNorth - sourceLatitude) / (sourceNorth - sourceSouth);
+      const fractions = this.sourceFractions(longitude, latitude);
+      if (!fractions) continue;
+      const [xFraction, yFraction] = fractions;
       const indices = new Array(currentArray.shape.length).fill(0);
       indices[this.dimIndices.lon.index] = Math.max(
         0,
@@ -883,12 +807,16 @@ export class ZarrTileProvider {
 
   private async initialize(): Promise<boolean> {
     try {
-      this.store = this.customStore ?? new zarr.FetchStore(this.url, {
-        ...(this.requestOverrides ? { overrides: this.requestOverrides } : {}),
-        ...(this.transformRequest
-          ? { fetch: createTransformedFetch(this.transformRequest, this.onAuthError) }
-          : {})
-      });
+      const store =
+        this.customStore ??
+        createFetchStore(
+          this.url,
+          this.requestOverrides,
+          this.transformRequest
+            ? createTransformedFetch(this.transformRequest, this.onAuthError)
+            : undefined
+        );
+      this.store = limitStoreRequests(store, ZarrTileProvider.concurrencyLimit);
       this.root = zarr.root(this.store);
 
       const { zarrArray, levelInfos, dimIndices, attrs } = await initZarrDataset(
@@ -929,24 +857,32 @@ export class ZarrTileProvider {
 
       this.scaleFactor = attrs.scale_factor ?? 1;
       this.offset = attrs.add_offset ?? 0;
-      this.crs = this.crs || (await detectCRS(attrs, zarrArray, this.xyLimits));
+      this.crs = this.crs || (this.projectionDefinition ? 'CUSTOM:SOURCE' : null) ||
+        (await detectCRS(attrs, zarrArray, this.xyLimits));
+      this.projection = resolveCRS(this.crs, this.projectionDefinition, attrs, zarrArray.attrs);
+      this.crs = this.projection.code;
 
       let { xMin, xMax, yMin, yMax } = this.xyLimits!;
       const baseWidth = this.levelMetadata.get(0)?.width ?? zarrArray.shape[dimIndices.lon.index];
       const baseHeight = this.levelMetadata.get(0)?.height ?? zarrArray.shape[dimIndices.lat.index];
-      const dx = baseWidth > 0 ? (xMax - xMin) / baseWidth : 0;
-      const dy = baseHeight > 0 ? (yMax - yMin) / baseHeight : 0;
-      let isGeographicGlobal = false;
+      // Coordinate arrays describe cell centres, so their spacing has n - 1 intervals.
+      const dx = baseWidth > 1 ? (xMax - xMin) / (baseWidth - 1) : 0;
+      const dy = baseHeight > 1 ? (yMax - yMin) / (baseHeight - 1) : 0;
+      this.sourceEdgeBounds = {
+        xMin: xMin - dx / 2,
+        xMax: xMax + dx / 2,
+        yMin: yMin - dy / 2,
+        yMax: yMax + dy / 2
+      };
       if (this.crs === 'EPSG:4326') {
         const lonCount = zarrArray.shape[dimIndices.lon.index];
         const lonSpan = xMax - xMin;
         const lonStep = lonCount > 1 ? lonSpan / (lonCount - 1) : 0;
         const tolerance = Math.max(lonStep * 1.5, 1e-3);
-        const wrapsZeroTo360 =
-          xMin >= -tolerance && xMax <= 360 + tolerance && xMax >= 180 - tolerance;
         const isGlobal = lonStep > 0 && lonSpan >= 360 - lonStep - tolerance;
-        isGeographicGlobal = isGlobal;
-        if (wrapsZeroTo360 && isGlobal) {
+        const usesWrappedLongitude = xMin < -180 - tolerance || xMax > 180 + tolerance;
+        this.geographicLongitudeIsGlobal = isGlobal;
+        if (isGlobal || usesWrappedLongitude) {
           this.geographicLonOffset360 = {
             west: xMin - lonStep / 2,
             span: lonSpan + lonStep
@@ -960,35 +896,62 @@ export class ZarrTileProvider {
         xMin -= dx / 2;
         xMax += dx / 2;
       }
-      if (this.crs === 'EPSG:3857') {
-        this.coverageBoundsMerc = { xMin, xMax, yMin, yMax };
-        const west = (xMin / 6378137) * (180 / Math.PI);
-        const east = (xMax / 6378137) * (180 / Math.PI);
-        const south = (2 * Math.atan(Math.exp(yMin / 6378137)) - Math.PI / 2) * (180 / Math.PI);
-        const north = (2 * Math.atan(Math.exp(yMax / 6378137)) - Math.PI / 2) * (180 / Math.PI);
-        this.coverageBoundsDeg = { west, south, east, north };
-      } else {
-        if (this.geographicLonOffset360) {
-          const edgeOffset = this.renderTarget === 'cesium' ? dx / 2 : 0;
-          xMin = -180 - edgeOffset;
-          xMax = 180 + edgeOffset;
-        } else if (!isGeographicGlobal && (xMin > 180 || xMax > 180)) {
-          xMin = ((xMin + 180) % 360) - 180;
-          xMax = ((xMax + 180) % 360) - 180;
-          if (xMin > xMax) {
-            const temp = xMin;
-            xMin = xMax;
-            xMax = temp;
-          }
-        }
-        this.coverageBoundsDeg = { west: xMin, south: yMin, east: xMax, north: yMax };
-        this.coverageBoundsMerc = {
-          xMin: lonDegToMercX(this.coverageBoundsDeg.west),
-          xMax: lonDegToMercX(this.coverageBoundsDeg.east),
-          yMin: latDegToMercY(this.coverageBoundsDeg.south),
-          yMax: latDegToMercY(this.coverageBoundsDeg.north)
+      if (this.crs === 'EPSG:4326' && this.geographicLongitudeIsGlobal) {
+        const edgeOffset = this.renderTarget === 'cesium' ? dx / 2 : 0;
+        this.coverageBoundsDeg = {
+          west: -180 - edgeOffset,
+          south: yMin,
+          east: 180 + edgeOffset,
+          north: yMax
         };
+      } else {
+        this.coverageBoundsDeg = sourceBoundsToGeographic(
+          { xMin, xMax, yMin, yMax },
+          this.projection
+        );
+        if (this.crs === 'EPSG:4326' && this.geographicLonOffset360) {
+          const center = (this.coverageBoundsDeg.west + this.coverageBoundsDeg.east) / 2;
+          const shift = 360 * Math.round(center / 360);
+          this.coverageBoundsDeg.west -= shift;
+          this.coverageBoundsDeg.east -= shift;
+        }
       }
+      // Cesium cannot safely drape a rectangle wider than one revolution. The
+      // expanded source bounds are still retained in sourceEdgeBounds for sampling.
+      if (this.renderTarget === 'cesium' &&
+          this.coverageBoundsDeg.east - this.coverageBoundsDeg.west >= 360 - 1e-6) {
+        this.coverageBoundsDeg.west = -180;
+        this.coverageBoundsDeg.east = 180;
+      }
+      if (this.renderTarget === 'cesium') {
+        // Longitude is undefined at the exact poles. A coordinate centre at
+        // +/-90 represents a degenerate row whose longitude samples all occupy
+        // one physical point. Stop at its inner half-cell boundary; otherwise
+        // Cesium collapses that row into a triangle fan and exposes a radial
+        // seam. Grids that merely reach a pole by their outer cell edge retain
+        // all but a metre-scale inset from the singularity.
+        const polarInset = 1e-5;
+        const southLimit = this.crs === 'EPSG:4326' && this.xyLimits.yMin <= -90 + 1e-9
+          ? -90 + dy / 2
+          : -90 + polarInset;
+        const northLimit = this.crs === 'EPSG:4326' && this.xyLimits.yMax >= 90 - 1e-9
+          ? 90 - dy / 2
+          : 90 - polarInset;
+        this.coverageBoundsDeg.south = Math.max(
+          this.coverageBoundsDeg.south,
+          southLimit
+        );
+        this.coverageBoundsDeg.north = Math.min(
+          this.coverageBoundsDeg.north,
+          northLimit
+        );
+      }
+      this.coverageBoundsMerc = {
+        xMin: lonDegToMercX(this.coverageBoundsDeg.west),
+        xMax: lonDegToMercX(this.coverageBoundsDeg.east),
+        yMin: latDegToMercY(this.coverageBoundsDeg.south),
+        yMax: latDegToMercY(this.coverageBoundsDeg.north)
+      };
       this.selectorHash = this.computeSelectorHash(this.selectors);
 
       await this.loadInitialDimensionValues();
@@ -1016,6 +979,47 @@ export class ZarrTileProvider {
       return sorted;
     };
     return JSON.stringify(sortKeys(selector));
+  }
+
+  /** Map a WGS84 position to normalized source-grid coordinates. */
+  private geographicToSource(
+    longitude: number,
+    latitude: number,
+    referenceLongitude = longitude
+  ): [number, number] | null {
+    if (!this.projection) return null;
+    let adjustedLongitude = longitude;
+    if (this.crs === 'EPSG:4326' && this.geographicLonOffset360) {
+      const { west, span } = this.geographicLonOffset360;
+      const sourceCenter = west + span / 2;
+      const adjustedReference = referenceLongitude +
+        360 * Math.round((sourceCenter - referenceLongitude) / 360);
+      adjustedLongitude = longitude;
+      adjustedLongitude += 360 * Math.round((adjustedReference - adjustedLongitude) / 360);
+    }
+    try {
+      const value = this.projection.forward([adjustedLongitude, latitude]);
+      return value.every(Number.isFinite) ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private sourceFractions(longitude: number, latitude: number): [number, number] | null {
+    if (!this.xyLimits || !this.projection) return null;
+    const { xMin, xMax, yMin, yMax } = this.xyLimits;
+    let sourceX: number;
+    let sourceY: number;
+    const source = this.geographicToSource(longitude, latitude);
+    if (!source) return null;
+    [sourceX, sourceY] = source;
+    const xFraction = (sourceX - xMin) / (xMax - xMin);
+    const yFraction = this.latAscending
+      ? (sourceY - yMin) / (yMax - yMin)
+      : (yMax - sourceY) / (yMax - yMin);
+    return xFraction >= 0 && xFraction <= 1 && yFraction >= 0 && yFraction <= 1
+      ? [xFraction, yFraction]
+      : null;
   }
 
   private async loadInitialDimensionValues(): Promise<void> {
@@ -1150,30 +1154,13 @@ export class ZarrTileProvider {
     this.colorTexture = createColorRampTexture(this.gl, this.colorScale.colors, 1);
   }
 
-  private static async throttle<T>(fn: () => Promise<T>): Promise<T> {
-    if (this.activeRequests >= this.concurrencyLimit) {
-      await new Promise<void>(resolve => this.queue.push(resolve));
-    }
-    this.activeRequests++;
-    try {
-      return await fn();
-    } finally {
-      this.activeRequests--;
-      const next = this.queue.shift();
-      if (next) next();
-    }
-  }
-
   private choosePyramidLevel(z: number): string | null {
     if (!this.levelInfos.length) return null;
 
-    const worldWidth = this.crs === 'EPSG:3857' ? 2 * Math.PI * 6378137 : 360;
-    const coverageWidth =
-      this.crs === 'EPSG:3857'
-        ? Math.abs(this.coverageBoundsMerc!.xMax - this.coverageBoundsMerc!.xMin)
-        : Math.abs(this.coverageBoundsDeg!.east - this.coverageBoundsDeg!.west);
+    const worldWidth = 360;
+    const coverageWidth = Math.abs(this.coverageBoundsDeg!.east - this.coverageBoundsDeg!.west);
     const coverageFraction = Math.max(0, Math.min(1, coverageWidth / worldWidth));
-    const rootTilesX = this.renderTarget === 'cesium' && this.crs === 'EPSG:4326' ? 2 : 1;
+    const rootTilesX = this.displayProjection === 'geographic' ? 2 : 1;
     const targetWidth = Math.max(
       1,
       this.tileSize * rootTilesX * 2 ** Math.max(0, z) * coverageFraction
@@ -1254,7 +1241,7 @@ export class ZarrTileProvider {
 
     if (
       this.renderTarget === 'web-map' &&
-      this.geographicLonOffset360 &&
+      this.geographicLongitudeIsGlobal &&
       boundsDeg.east - boundsDeg.west >= 360 - 1e-9
     ) {
       const middle = (boundsDeg.west + boundsDeg.east) / 2;
@@ -1274,150 +1261,9 @@ export class ZarrTileProvider {
     const controller = this.prepareAbortController(key);
 
     try {
-      const useGeographicCoordinates = this.renderTarget === 'cesium' && this.crs === 'EPSG:4326';
-      const cov = useGeographicCoordinates
-        ? {
-            xMin: this.coverageBoundsDeg!.west,
-            xMax: this.coverageBoundsDeg!.east,
-            yMin: this.coverageBoundsDeg!.south,
-            yMax: this.coverageBoundsDeg!.north
-          }
-        : this.coverageBoundsMerc!;
-      const { dataWidth, dataHeight, currentArray, multiscaleLevel } =
-        await this.getArrayForZoom(z);
-
-      // Cesium's geographic tiling scheme samples EPSG:4326 arrays in degrees.
-      // Leaflet and OpenLayers use Web Mercator tiles even when the source data
-      // coordinates are geographic, matching the original zarr-maps provider.
-      const tileCoordinates = useGeographicCoordinates
-        ? {
-            xMin: boundsDeg.west,
-            xMax: boundsDeg.east,
-            yMin: boundsDeg.south,
-            yMax: boundsDeg.north
-          }
-        : {
-            xMin: lonDegToMercX(boundsDeg.west),
-            xMax: lonDegToMercX(boundsDeg.east),
-            yMin: latDegToMercY(boundsDeg.south),
-            yMax: latDegToMercY(boundsDeg.north)
-          };
-
-      const ixMin = Math.max(tileCoordinates.xMin, cov.xMin);
-      const ixMax = Math.min(tileCoordinates.xMax, cov.xMax);
-      const iyMin = Math.max(tileCoordinates.yMin, cov.yMin);
-      const iyMax = Math.min(tileCoordinates.yMax, cov.yMax);
-
-      if (!(ixMin < ixMax && iyMin < iyMax)) return this.emptyCanvas();
-
-      const fracWest =
-        (ixMin - tileCoordinates.xMin) / (tileCoordinates.xMax - tileCoordinates.xMin);
-      const fracEast =
-        (ixMax - tileCoordinates.xMin) / (tileCoordinates.xMax - tileCoordinates.xMin);
-      const fracSouth =
-        (iyMin - tileCoordinates.yMin) / (tileCoordinates.yMax - tileCoordinates.yMin);
-      const fracNorth =
-        (iyMax - tileCoordinates.yMin) / (tileCoordinates.yMax - tileCoordinates.yMin);
-
-      const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
-
-      let u0 = clamp01((ixMin - cov.xMin) / (cov.xMax - cov.xMin));
-      let u1 = clamp01((ixMax - cov.xMin) / (cov.xMax - cov.xMin));
-      if (this.crs === 'EPSG:4326' && this.geographicLonOffset360) {
-        const normalize = (longitude: number) => ((longitude % 360) + 360) % 360;
-        const { west, span } = this.geographicLonOffset360;
-        let lonWest = normalize(boundsDeg.west);
-        let lonEast = normalize(boundsDeg.east);
-        if (lonWest < west) lonWest += 360;
-        if (lonEast < west) lonEast += 360;
-        if (lonEast <= lonWest) lonEast += 360;
-        u0 = clamp01((lonWest - west) / span);
-        u1 = clamp01((lonEast - west) / span);
-      }
-
-      // Tile intersection is performed in the map projection, but an
-      // EPSG:4326 array is indexed in degrees. Using a Mercator Y fraction to
-      // select geographic rows causes severe north/south stretching.
-      const sourceYMin =
-        this.crs === 'EPSG:4326' && !useGeographicCoordinates
-          ? (2 * Math.atan(Math.exp(iyMin / 6378137)) - Math.PI / 2) * (180 / Math.PI)
-          : iyMin;
-      const sourceYMax =
-        this.crs === 'EPSG:4326' && !useGeographicCoordinates
-          ? (2 * Math.atan(Math.exp(iyMax / 6378137)) - Math.PI / 2) * (180 / Math.PI)
-          : iyMax;
-      const sourceCoverageYMin =
-        this.crs === 'EPSG:4326' ? this.coverageBoundsDeg!.south : cov.yMin;
-      const sourceCoverageYMax =
-        this.crs === 'EPSG:4326' ? this.coverageBoundsDeg!.north : cov.yMax;
-
-      const useAscendingRows = this.latAscending;
-      const v0 = useAscendingRows
-        ? clamp01((sourceYMin - sourceCoverageYMin) / (sourceCoverageYMax - sourceCoverageYMin))
-        : clamp01((sourceCoverageYMax - sourceYMax) / (sourceCoverageYMax - sourceCoverageYMin));
-      const v1 = useAscendingRows
-        ? clamp01((sourceYMax - sourceCoverageYMin) / (sourceCoverageYMax - sourceCoverageYMin))
-        : clamp01((sourceCoverageYMax - sourceYMin) / (sourceCoverageYMax - sourceCoverageYMin));
-
-      const startX = Math.floor(u0 * dataWidth);
-      const endX = Math.ceil(u1 * dataWidth);
-      const startY = Math.floor(v0 * dataHeight);
-      const endY = Math.ceil(v1 * dataHeight);
-
-      const sX = Math.max(0, Math.min(dataWidth - 1, startX));
-      const eX = Math.max(0, Math.min(dataWidth, endX));
-      const sY = Math.max(0, Math.min(dataHeight - 1, startY));
-      const eY = Math.max(0, Math.min(dataHeight, endY));
-
-      const w = eX - sX;
-      const h = eY - sY;
-
-      if (w <= 0 || h <= 0) return this.emptyCanvas();
-
-      const sliceArgs = await calculateSliceArgsRequestImage(
-        currentArray.shape,
-        { startX: sX, endX: eX, startY: sY, endY: eY },
-        this.dimIndices,
-        this.selectors
-      );
-
-      const dataCacheKey = [
-        this.selectorHash,
-        multiscaleLevel ?? 'base',
-        sX,
-        eX,
-        sY,
-        eY
-      ].join('/');
-      let cachedData = this.tileDataCache?.get(dataCacheKey);
-      if (!cachedData) {
-        const data = await ZarrTileProvider.throttle(() =>
-          zarr.get(currentArray, sliceArgs, { opts: { signal: controller.signal } })
-        );
-        const src = data.data as Float32Array;
-        const view = new Float32Array(src.buffer, src.byteOffset, src.length);
-        const flatData = new Float32Array(view);
-        cachedData = { data: flatData, sizeBytes: flatData.byteLength };
-        this.tileDataCache?.set(dataCacheKey, cachedData);
-      }
-
-      const ascendingSliceStart = this.latAscending ? sY : dataHeight - eY;
-      return await this.renderWithWebGL(
-        cachedData.data,
-        w,
-        h,
-        { fracWest, fracEast, fracSouth, fracNorth },
-        this.crs === 'EPSG:4326' && !useGeographicCoordinates
-          ? {
-              mercatorSouth: iyMin,
-              mercatorNorth: iyMax,
-              geographicSouth: this.coverageBoundsDeg!.south,
-              geographicNorth: this.coverageBoundsDeg!.north,
-              dataHeight,
-              ascendingSliceStart
-            }
-          : undefined
-      );
+      // Every CRS, including 4326 and 3857, uses the same resolved projection
+      // path. This keeps coverage, queries, and rendering on one transform.
+      return await this.renderReprojectedTile(boundsDeg, z, controller.signal);
     } catch {
       return this.emptyCanvas();
     } finally {
@@ -1435,23 +1281,136 @@ export class ZarrTileProvider {
     return this._emptyCanvas;
   }
 
+  /** Render an arbitrary rectilinear source CRS through a projection mesh. */
+  private async renderReprojectedTile(
+    boundsDeg: BoundsProps,
+    z: number,
+    signal: AbortSignal
+  ): Promise<HTMLCanvasElement | ImageBitmap> {
+    if (!this.xyLimits || !this.projection) return this.emptyCanvas();
+    const { dataWidth, dataHeight, currentArray, multiscaleLevel } = await this.getArrayForZoom(z);
+    const { xMin, xMax, yMin, yMax } = this.xyLimits;
+    const edgeBounds = this.sourceEdgeBounds ?? this.xyLimits;
+    // A cyclic grid whose centres are 0..359 has edges at -0.5..359.5, while
+    // the western tile's exact 0-degree endpoint unwraps to 360. Permit that
+    // remaining half cell and clamp it to the last texel below.
+    const cyclicXPadding = this.geographicLongitudeIsGlobal
+      ? Math.max(edgeBounds.xMax - xMax, xMin - edgeBounds.xMin)
+      : 0;
+    const referenceLongitude = (boundsDeg.west + boundsDeg.east) / 2;
+    const divisions = 32;
+    type Vertex = { px: number; py: number; sx: number; sy: number; valid: boolean };
+    const grid: Vertex[][] = [];
+    const sourceX: number[] = [];
+    const sourceY: number[] = [];
+    const mercatorSouth = latDegToMercY(boundsDeg.south);
+    const mercatorNorth = latDegToMercY(boundsDeg.north);
+    for (let row = 0; row <= divisions; row++) {
+      const qy = row / divisions;
+      const latitude = this.displayProjection === 'geographic'
+        ? boundsDeg.south + qy * (boundsDeg.north - boundsDeg.south)
+        : (2 * Math.atan(Math.exp((mercatorSouth + qy * (mercatorNorth - mercatorSouth)) / 6378137)) -
+            Math.PI / 2) * (180 / Math.PI);
+      const vertices: Vertex[] = [];
+      for (let column = 0; column <= divisions; column++) {
+        const qx = column / divisions;
+        const longitude = boundsDeg.west + qx * (boundsDeg.east - boundsDeg.west);
+        let sx = NaN;
+        let sy = NaN;
+        const source = this.geographicToSource(longitude, latitude, referenceLongitude);
+        if (source) [sx, sy] = source;
+        const valid = Number.isFinite(sx) && Number.isFinite(sy) &&
+          sx >= edgeBounds.xMin - cyclicXPadding &&
+          sx <= edgeBounds.xMax + cyclicXPadding &&
+          sy >= edgeBounds.yMin && sy <= edgeBounds.yMax;
+        if (valid) {
+          // Pixel-edge coordinates sample the nearest outer cell. Keeping the
+          // clamped value in the mesh also avoids UVs outside the data texture.
+          sx = Math.max(xMin, Math.min(xMax, sx));
+          sy = Math.max(yMin, Math.min(yMax, sy));
+          sourceX.push(sx);
+          sourceY.push(sy);
+        }
+        vertices.push({ px: qx * 2 - 1, py: qy * 2 - 1, sx, sy, valid });
+      }
+      grid.push(vertices);
+    }
+    if (!sourceX.length) return this.emptyCanvas();
+
+    const minSourceX = Math.min(...sourceX);
+    const maxSourceX = Math.max(...sourceX);
+    const minSourceY = Math.min(...sourceY);
+    const maxSourceY = Math.max(...sourceY);
+    // Coordinate arrays contain cell centres: xMin/yMin are index 0 and
+    // xMax/yMax are index n - 1. Mapping them to n placed the final centre one
+    // pixel beyond the texture and made adjacent tiles sample different cells.
+    const sourceToColumn = (x: number) =>
+      (x - xMin) / (xMax - xMin) * Math.max(0, dataWidth - 1);
+    const sourceToAscendingRow = (y: number) =>
+      (y - yMin) / (yMax - yMin) * Math.max(0, dataHeight - 1);
+    const startX = Math.max(0, Math.min(dataWidth - 1, Math.floor(sourceToColumn(minSourceX))));
+    const endX = Math.max(startX + 1, Math.min(dataWidth, Math.ceil(sourceToColumn(maxSourceX)) + 1));
+    const ascendingStart = Math.max(0, Math.min(dataHeight - 1, Math.floor(sourceToAscendingRow(minSourceY))));
+    const ascendingEnd = Math.max(ascendingStart + 1, Math.min(dataHeight, Math.ceil(sourceToAscendingRow(maxSourceY)) + 1));
+    const startY = this.latAscending ? ascendingStart : dataHeight - ascendingEnd;
+    const endY = this.latAscending ? ascendingEnd : dataHeight - ascendingStart;
+    const width = endX - startX;
+    const height = endY - startY;
+
+    const sliceArgs = await calculateSliceArgsRequestImage(
+      currentArray.shape,
+      { startX, endX, startY, endY },
+      this.dimIndices,
+      this.selectors
+    );
+    const dataCacheKey = [this.selectorHash, multiscaleLevel ?? 'base', startX, endX, startY, endY].join('/');
+    let cachedData = this.tileDataCache?.get(dataCacheKey);
+    if (!cachedData) {
+      const data = await zarr.get(currentArray, sliceArgs, { opts: { signal } });
+      const source = data.data as unknown as ArrayLike<number>;
+      const flatData = Float32Array.from(source, Number);
+      cachedData = { data: flatData, sizeBytes: flatData.byteLength };
+      this.tileDataCache?.set(dataCacheKey, cachedData);
+    }
+
+    const vertices: number[] = [];
+    const uv = (vertex: Vertex): [number, number] => [
+      // WebGL samples texel centres at (index + 0.5) / textureSize.
+      (sourceToColumn(vertex.sx) - startX + 0.5) / width,
+      (sourceToAscendingRow(vertex.sy) - ascendingStart + 0.5) / height
+    ];
+    const push = (vertex: Vertex) => {
+      const [u, v] = uv(vertex);
+      vertices.push(vertex.px, vertex.py, u, v);
+    };
+    for (let row = 0; row < divisions; row++) {
+      for (let column = 0; column < divisions; column++) {
+        const sw = grid[row][column];
+        const se = grid[row][column + 1];
+        const nw = grid[row + 1][column];
+        const ne = grid[row + 1][column + 1];
+        if (!(sw.valid && se.valid && nw.valid && ne.valid)) continue;
+        push(sw); push(se); push(nw);
+        push(nw); push(se); push(ne);
+      }
+    }
+    if (!vertices.length) return this.emptyCanvas();
+    return this.renderWithWebGL(
+      cachedData.data,
+      width,
+      height,
+      new Float32Array(vertices)
+    );
+  }
+
   private async renderWithWebGL(
     data: Float32Array,
     width: number,
     height: number,
-    frac: { fracWest: number; fracEast: number; fracSouth: number; fracNorth: number },
-    mercatorWarp?: {
-      mercatorSouth: number;
-      mercatorNorth: number;
-      geographicSouth: number;
-      geographicNorth: number;
-      dataHeight: number;
-      ascendingSliceStart: number;
-    }
+    positions: Float32Array
   ): Promise<HTMLCanvasElement | ImageBitmap> {
     const gl = this.gl!;
     const program = this.program!;
-    const { fracWest, fracEast, fracSouth, fracNorth } = frac;
 
     const dataTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, dataTexture);
@@ -1463,68 +1422,6 @@ export class ZarrTileProvider {
     gl.viewport(0, 0, this.tileSize, this.tileSize);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-
-    const x0 = fracWest * 2 - 1;
-    const x1 = fracEast * 2 - 1;
-    const y0 = fracSouth * 2 - 1;
-    const y1 = fracNorth * 2 - 1;
-
-    const vertices: number[] = [];
-    const segments = mercatorWarp ? 32 : 1;
-    const textureY = (fraction: number) => {
-      if (!mercatorWarp) return fraction;
-      const mercatorY =
-        mercatorWarp.mercatorSouth +
-        fraction * (mercatorWarp.mercatorNorth - mercatorWarp.mercatorSouth);
-      const latitude =
-        (2 * Math.atan(Math.exp(mercatorY / 6378137)) - Math.PI / 2) * (180 / Math.PI);
-      const geographicFraction =
-        (latitude - mercatorWarp.geographicSouth) /
-        (mercatorWarp.geographicNorth - mercatorWarp.geographicSouth);
-      return Math.max(
-        0,
-        Math.min(
-          1,
-          (geographicFraction * mercatorWarp.dataHeight - mercatorWarp.ascendingSliceStart) / height
-        )
-      );
-    };
-
-    for (let segment = 0; segment < segments; segment++) {
-      const q0 = segment / segments;
-      const q1 = (segment + 1) / segments;
-      const py0 = y0 + q0 * (y1 - y0);
-      const py1 = y0 + q1 * (y1 - y0);
-      const ty0 = textureY(q0);
-      const ty1 = textureY(q1);
-      vertices.push(
-        x0,
-        py0,
-        0,
-        ty0,
-        x1,
-        py0,
-        1,
-        ty0,
-        x0,
-        py1,
-        0,
-        ty1,
-        x0,
-        py1,
-        0,
-        ty1,
-        x1,
-        py0,
-        1,
-        ty0,
-        x1,
-        py1,
-        1,
-        ty1
-      );
-    }
-    const positions = new Float32Array(vertices);
 
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -1549,7 +1446,11 @@ export class ZarrTileProvider {
     gl.uniform1f(this.uniforms.u_max, this.colorScale.max);
     gl.uniform1f(this.uniforms.u_noDataMin, this.noDataMin as number);
     gl.uniform1f(this.uniforms.u_noDataMax, this.noDataMax as number);
-    gl.uniform1f(this.uniforms.u_fillValue, this.fillValue as number);
+    // R32F rounds uploaded samples to float32, so round the uniform identically.
+    gl.uniform1f(
+      this.uniforms.u_fillValue,
+      this.useFillValue ? Math.fround(this.fillValue as number) : 0
+    );
     gl.uniform1i(this.uniforms.u_useFillValue, this.useFillValue ? 1 : 0);
     // WebGL treats the first uploaded row as the bottom of the texture. Arrays
     // ordered north-to-south therefore need a vertical texture flip; arrays
@@ -1570,4 +1471,20 @@ export class ZarrTileProvider {
     out.getContext('2d')!.drawImage(gl.canvas as HTMLCanvasElement, 0, 0);
     return out;
   }
+}
+
+
+/** Copy selector state so the provider never mutates caller-owned objects. */
+function cloneSelectors(selectors: ZarrSelectors = {}): ZarrSelectors {
+  return Object.fromEntries(
+    Object.entries(selectors).map(([dimension, selector]) => [
+      dimension,
+      {
+        ...selector,
+        selected: Array.isArray(selector.selected)
+          ? [...selector.selected] as [number, number]
+          : selector.selected
+      }
+    ])
+  );
 }

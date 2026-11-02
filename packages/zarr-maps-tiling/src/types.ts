@@ -102,6 +102,12 @@ export interface QueryOptions {
   includeSpatialCoordinates?: boolean;
 }
 
+/** Controls how many coordinates are returned by each streamed query chunk. */
+export interface QueryStreamOptions extends QueryOptions {
+  /** Number of ranged coordinates or transect positions per chunk. Defaults to 32. */
+  chunkSize?: number;
+}
+
 /** Values and coordinates returned from a shared Zarr query. */
 export interface QueryResult {
   /**
@@ -153,6 +159,14 @@ export interface TransectQueryOptions extends QueryOptions {
   concurrency?: number;
 }
 
+/** A streamed one-level transect chunk. */
+export interface TransectStreamChunk extends TransectResult {
+  /** Zero-based position of this chunk in the complete transect. */
+  startIndex: number;
+  /** Whether this is the final chunk. */
+  done: boolean;
+}
+
 /** A one-level transect. Values preserve no-data gaps as null. */
 export interface TransectResult {
   variable: string;
@@ -168,6 +182,14 @@ export interface FullTransectResult {
   distancesKm: number[];
   elevations: (number | string)[];
   values: (number | null)[][];
+}
+
+/** A streamed full-depth transect chunk. */
+export interface FullTransectStreamChunk extends FullTransectResult {
+  /** Zero-based elevation row of this chunk in the complete transect. */
+  startIndex: number;
+  /** Whether this is the final chunk. */
+  done: boolean;
 }
 
 /**
@@ -206,6 +228,8 @@ export interface ZarrTileOptions {
   store?: zarr.Readable;
   variable: string;
   crs?: CRS | null;
+  /** Proj4, WKT2, or PROJJSON definition for a CRS not registered by proj4. */
+  proj4?: CRSDefinition;
   tileSize?: number;
   maxZoom?: number;
   scale?: [number, number];
@@ -279,10 +303,20 @@ export interface XYLimitsProps {
   yMax: number;
 }
 
-/**
- * Supported Coordinate Reference Systems.
- */
-export type CRS = 'EPSG:4326' | 'EPSG:3857';
+/** CRS identifier understood by proj4 (for example `EPSG:4326` or `EPSG:32630`). */
+export type CRS = string;
+
+/** Projection definition accepted by proj4. */
+export type CRSDefinition = string | Record<string, unknown>;
+
+/** Validated transformation between WGS84 and a rectilinear source grid. */
+export interface ResolvedCRS {
+  code: string;
+  definition?: CRSDefinition;
+  geographic: boolean;
+  forward(position: [number, number]): [number, number];
+  inverse(position: [number, number]): [number, number];
+}
 
 /** Supported conventions for discovering multiscale Zarr levels. */
 export type MultiscaleFormat = 'auto' | 'legacy' | 'geozarr';

@@ -134,6 +134,11 @@ const typedocSidebar = {
           items: [
             {
               type: "doc",
+              id: "api/zarr-maps-tiling/classes/TileDataCache",
+              label: "TileDataCache"
+            },
+            {
+              type: "doc",
               id: "api/zarr-maps-tiling/classes/ZarrTileProvider",
               label: "ZarrTileProvider"
             }
@@ -175,6 +180,11 @@ const typedocSidebar = {
             },
             {
               type: "doc",
+              id: "api/zarr-maps-tiling/interfaces/FullTransectStreamChunk",
+              label: "FullTransectStreamChunk"
+            },
+            {
+              type: "doc",
               id: "api/zarr-maps-tiling/interfaces/QueryBackend",
               label: "QueryBackend"
             },
@@ -205,6 +215,11 @@ const typedocSidebar = {
             },
             {
               type: "doc",
+              id: "api/zarr-maps-tiling/interfaces/QueryStreamOptions",
+              label: "QueryStreamOptions"
+            },
+            {
+              type: "doc",
               id: "api/zarr-maps-tiling/interfaces/RequestOverrides",
               label: "RequestOverrides"
             },
@@ -212,6 +227,11 @@ const typedocSidebar = {
               type: "doc",
               id: "api/zarr-maps-tiling/interfaces/RequestParameters",
               label: "RequestParameters"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/interfaces/ResolvedCRS",
+              label: "ResolvedCRS"
             },
             {
               type: "doc",
@@ -232,6 +252,11 @@ const typedocSidebar = {
               type: "doc",
               id: "api/zarr-maps-tiling/interfaces/TransectResult",
               label: "TransectResult"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/interfaces/TransectStreamChunk",
+              label: "TransectStreamChunk"
             },
             {
               type: "doc",
@@ -288,6 +313,11 @@ const typedocSidebar = {
               type: "doc",
               id: "api/zarr-maps-tiling/type-aliases/CRS",
               label: "CRS"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/type-aliases/CRSDefinition",
+              label: "CRSDefinition"
             },
             {
               type: "doc",
@@ -352,13 +382,13 @@ const typedocSidebar = {
             },
             {
               type: "doc",
-              id: "api/zarr-maps-tiling/functions/calculateXYFromBounds",
-              label: "calculateXYFromBounds"
+              id: "api/zarr-maps-tiling/functions/createColorRampTexture",
+              label: "createColorRampTexture"
             },
             {
               type: "doc",
-              id: "api/zarr-maps-tiling/functions/createColorRampTexture",
-              label: "createColorRampTexture"
+              id: "api/zarr-maps-tiling/functions/createFetchStore",
+              label: "createFetchStore"
             },
             {
               type: "doc",
@@ -372,8 +402,18 @@ const typedocSidebar = {
             },
             {
               type: "doc",
+              id: "api/zarr-maps-tiling/functions/createTransformedFetch",
+              label: "createTransformedFetch"
+            },
+            {
+              type: "doc",
               id: "api/zarr-maps-tiling/functions/decodeCFTime",
               label: "decodeCFTime"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/functions/defaultTileCacheBytes",
+              label: "defaultTileCacheBytes"
             },
             {
               type: "doc",
@@ -442,6 +482,11 @@ const typedocSidebar = {
             },
             {
               type: "doc",
+              id: "api/zarr-maps-tiling/functions/limitStoreRequests",
+              label: "limitStoreRequests"
+            },
+            {
+              type: "doc",
               id: "api/zarr-maps-tiling/functions/loadDimensionValues",
               label: "loadDimensionValues"
             },
@@ -462,6 +507,11 @@ const typedocSidebar = {
             },
             {
               type: "doc",
+              id: "api/zarr-maps-tiling/functions/resolveCRS",
+              label: "resolveCRS"
+            },
+            {
+              type: "doc",
               id: "api/zarr-maps-tiling/functions/resolveNoDataRange",
               label: "resolveNoDataRange"
             },
@@ -469,6 +519,31 @@ const typedocSidebar = {
               type: "doc",
               id: "api/zarr-maps-tiling/functions/sampleTransectPositions",
               label: "sampleTransectPositions"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/functions/sourceBoundsToGeographic",
+              label: "sourceBoundsToGeographic"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/functions/streamFullTransect",
+              label: "streamFullTransect"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/functions/streamTimeSeries",
+              label: "streamTimeSeries"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/functions/streamTransect",
+              label: "streamTransect"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/functions/streamVerticalProfile",
+              label: "streamVerticalProfile"
             },
             {
               type: "doc",

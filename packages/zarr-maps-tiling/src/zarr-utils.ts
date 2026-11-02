@@ -12,7 +12,6 @@
  * - Calculation of vertical exaggeration and Cesium-compatible XY indices
  */
 
-import proj4 from 'proj4';
 import * as zarr from 'zarrita';
 import {
   type ZarrSelectorsProps,
@@ -633,6 +632,15 @@ export async function initZarrDataset(
     dimensions,
     existingCoordinates
   );
+  for (const axis of ['lon', 'lat'] as const) {
+    const coordinate = dimIndices[axis]?.array;
+    if (coordinate && coordinate.shape.length !== 1) {
+      throw new Error(
+        `Curvilinear grids are not supported: ${dimIndices[axis].name} is ${coordinate.shape.length}-dimensional. ` +
+          'Use separate one-dimensional x/y coordinate axes for a rectilinear grid.'
+      );
+    }
+  }
   return {
     zarrArray,
     levelInfos,
@@ -889,12 +897,17 @@ export async function detectCRS(
   const attrCRS =
     attrs?.['proj:code'] ??
     attrs?.proj?.code ??
+    attrs?.crs ??
     multiscale?.datasets?.[0]?.crs ??
     multiscale?.layout?.[0]?.crs ??
     arr?.attrs?.crs;
   if (attrCRS) {
     return attrCRS;
   }
+  const embeddedDefinition =
+    attrs?.['proj:wkt2'] ?? attrs?.['proj:projjson'] ?? attrs?.proj?.wkt2 ?? attrs?.proj?.projjson ??
+    arr?.attrs?.crs_wkt ?? arr?.attrs?.spatial_ref;
+  if (embeddedDefinition) return 'ZARR:SOURCE';
   if (!xyLimits) {
     return 'EPSG:4326';
   }
@@ -958,43 +971,6 @@ export function calculateHeightMeters(
   return firstElement * verticalExaggeration;
 }
 
-/**
- * Converts geographic bounds (lat/lon) to pixel-space indices for slicing Zarr arrays.
- * Supports both EPSG:4326 and EPSG:3857 projections.
- *
- * @param bounds - Geographic bounding box.
- * @param width - Array width (longitude dimension).
- * @param height - Array height (latitude dimension).
- * @param crs - Coordinate reference system. See {@link CRS}.
- * @returns Start and end pixel indices for X and Y axes.
- */
-export function calculateXYFromBounds(
-  bounds: { west: number; south: number; east: number; north: number },
-  width: number,
-  height: number,
-  crs: CRS | null
-): { x: [number, number]; y: [number, number] } {
-  if (crs === 'EPSG:3857') {
-    const sourceCRS: CRS = 'EPSG:4326';
-    const [xWest, ySouth] = proj4(sourceCRS, crs, [bounds.west, bounds.south]);
-    const [xEast, yNorth] = proj4(sourceCRS, crs, [bounds.east, bounds.north]);
-    const worldExtent = 20037508.342789244;
-    const xMin = Math.floor(((xWest + worldExtent) / (2 * worldExtent)) * width);
-    const xMax = Math.floor(((xEast + worldExtent) / (2 * worldExtent)) * width);
-    const yMin = Math.floor(((worldExtent - yNorth) / (2 * worldExtent)) * height);
-    const yMax = Math.floor(((worldExtent - ySouth) / (2 * worldExtent)) * height);
-    return { x: [xMin, xMax], y: [yMin, yMax] };
-  } else {
-    const xMin = Math.floor(((bounds.west + 180) / 360) * width);
-    const xMax = Math.floor(((bounds.east + 180) / 360) * width);
-    const yMin = Math.floor(((90 - bounds.north) / 180) * height);
-    const yMax = Math.floor(((90 - bounds.south) / 180) * height);
-    return {
-      x: [xMin, xMax],
-      y: [yMin, yMax]
-    };
-  }
-}
 /**
  * Reads an array with the same Zarrita module instance that opened it.
  * Zarrita 0.7 keeps array decoding context module-local, so consumers must not

@@ -27,7 +27,6 @@ framework-independent tiling engine.
 | [`zarr-maps-ol`](packages/zarr-maps-ol) | OpenLayers tile-layer adapter and the recommended entry point for OpenLayers applications. |
 | [`zarr-maps-tiling`](packages/zarr-maps-tiling) | Shared Zarr data-access, querying, tile-selection, caching, and WebGL rendering engine. |
 | [`zarr-maps-colormap`](packages/zarr-maps-colormap) | Framework-independent colormap definitions and color-ramp utilities. Based on [jscolormaps](https://github.com/timothygebhard/js-colormaps). |
-| [`zarr-maps-explorer`](packages/zarr-maps-explorer) | Reusable React components and styles for building dataset explorers, legends, controls, and query panels. |
 
 ### The shared tiling engine
 
@@ -43,8 +42,6 @@ also makes the provider usable directly when developing another integration.
 ```text
 zarr-maps-colormap ──→ zarr-maps-tiling ──┬──→ zarr-maps-leaflet
                                           └──→ zarr-maps-ol
-
-zarr-maps-colormap ──→ zarr-maps-explorer
 ```
 
 ## Overview
@@ -74,7 +71,7 @@ It is designed for fast, on-demand raster visualization in Leaflet and OpenLayer
   Uses `ol/layer/Tile` to request tiles based on current map view.
 
 - **CRS-aware**
-  Supports EPSG:4326 (Geographic) and EPSG:3857 (Web Mercator) with automatic detection.
+  Reprojects regular rectilinear grids from any source CRS understood by proj4. Definitions may come from metadata, a registered identifier, or the `proj4` option.
 
 - **On-demand streaming**
   Only the required slices are fetched and decoded dynamically.
@@ -101,12 +98,11 @@ npm install zarr-maps-leaflet zarr-maps-ol
 
 Install only the adapter for the map library you use. Each adapter installs the shared tiling and colormap packages automatically.
 
-The supporting packages can also be installed directly. Use the tiling package when building a
-custom map integration, the colormap package for custom legends or color ramps, and the Explorer
-package for reusable React interface components:
+The published supporting packages can also be installed directly. Use the tiling package when
+building a custom map integration and the colormap package for custom legends or color ramps:
 
 ```bash
-npm install zarr-maps-tiling zarr-maps-colormap zarr-maps-explorer
+npm install zarr-maps-tiling zarr-maps-colormap
 ```
 
 ```ts
@@ -245,6 +241,25 @@ const profile = await layer.getVerticalProfile([-5.4, 36.1]);
 const transect = await layer.getTransect([-6, 36], [-4, 37], {}, { samples: 100 });
 const fullTransect = await layer.getFullTransect([-6, 36], [-4, 37]);
 ```
+
+Long-running ranged queries can be consumed progressively with the streaming methods. Existing promise-based methods remain available when a complete result is preferred:
+
+```ts
+for await (const chunk of layer.streamTimeSeries([-5.4, 36.1], {}, { chunkSize: 32 })) {
+  updateSeries(chunk);
+}
+
+for await (const chunk of layer.streamTransect(
+  [-6, 36],
+  [-4, 37],
+  {},
+  { samples: 100, chunkSize: 16 }
+)) {
+  updateTransect(chunk);
+}
+```
+
+Streaming methods support `AbortSignal` through the options object and yield chunks in query order. `streamVerticalProfile` and `streamFullTransect` are also available for vertical data.
 
 ---
 

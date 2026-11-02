@@ -4,8 +4,11 @@ import type {
   QueryOptions,
   QueryPosition,
   QueryResult,
+  QueryStreamOptions,
+  FullTransectStreamChunk,
   TransectQueryOptions,
   TransectResult,
+  TransectStreamChunk,
   ZarrSelectors,
   ZarrSelectorsProps
 } from './types';
@@ -91,6 +94,50 @@ export function getVerticalProfile(
     },
     options
   );
+}
+
+async function* streamRangedQuery(
+  backend: QueryBackend,
+  position: QueryPosition,
+  dimension: 'time' | 'elevation',
+  selectors: ZarrSelectors,
+  options: QueryStreamOptions
+): AsyncGenerator<QueryResult> {
+  const coordinates = requireDimension(backend, dimension);
+  const chunkSize = Math.max(1, Math.floor(options.chunkSize ?? 32));
+  const offset = backend.queryIndexOffsets?.[dimension] ?? 0;
+  for (let start = 0; start < coordinates.length; start += chunkSize) {
+    throwIfAborted(options.signal);
+    const end = Math.min(coordinates.length, start + chunkSize);
+    yield await backend.queryData(
+      { type: 'Point', coordinates: position },
+      {
+        ...scalarizeSelectors(backend, selectors),
+        [dimension]: { selected: [offset + start, offset + end], type: 'index' }
+      },
+      options
+    );
+  }
+}
+
+/** Streams time-series chunks as they are read from the backend. */
+export function streamTimeSeries(
+  backend: QueryBackend,
+  position: QueryPosition,
+  selectors: ZarrSelectors = {},
+  options: QueryStreamOptions = {}
+): AsyncGenerator<QueryResult> {
+  return streamRangedQuery(backend, position, 'time', selectors, options);
+}
+
+/** Streams vertical-profile chunks as they are read from the backend. */
+export function streamVerticalProfile(
+  backend: QueryBackend,
+  position: QueryPosition,
+  selectors: ZarrSelectors = {},
+  options: QueryStreamOptions = {}
+): AsyncGenerator<QueryResult> {
+  return streamRangedQuery(backend, position, 'elevation', selectors, options);
 }
 
 /**
@@ -185,6 +232,41 @@ export async function getTransect(
   };
 }
 
+/** Streams ordered chunks of a one-level transect. */
+export async function* streamTransect(
+  backend: QueryBackend,
+  start: QueryPosition,
+  end: QueryPosition,
+  selectors: ZarrSelectors = {},
+  options: TransectQueryOptions & { chunkSize?: number } = {}
+): AsyncGenerator<TransectStreamChunk> {
+  const positions = sampleTransectPositions(start, end, options.samples);
+  const distancesKm = cumulativeDistances(positions);
+  const chunkSize = Math.max(1, Math.floor(options.chunkSize ?? 16));
+  const scalarSelectors = scalarizeSelectors(backend, selectors);
+  for (let startIndex = 0; startIndex < positions.length; startIndex += chunkSize) {
+    throwIfAborted(options.signal);
+    const chunkPositions = positions.slice(startIndex, startIndex + chunkSize);
+    const results = backend.queryPoints
+      ? await backend.queryPoints(chunkPositions, scalarSelectors, options)
+      : await mapConcurrent(
+          chunkPositions,
+          options.concurrency ?? 6,
+          options.signal,
+          position =>
+            backend.queryData({ type: 'Point', coordinates: position }, scalarSelectors, options)
+        );
+    yield {
+      variable: results[0]?.variable ?? '',
+      positions: chunkPositions,
+      distancesKm: distancesKm.slice(startIndex, startIndex + chunkPositions.length),
+      values: results.map(result => result.values[0] ?? null),
+      startIndex,
+      done: startIndex + chunkPositions.length >= positions.length
+    };
+  }
+}
+
 /**
  * Queries all elevation levels along a line between two WGS84 positions.
  *
@@ -268,4 +350,64 @@ export async function getFullTransect(
     elevations,
     values
   };
+}
+
+/** Streams full-depth transect rows as they are read from the backend. */
+export async function* streamFullTransect(
+  backend: QueryBackend,
+  start: QueryPosition,
+  end: QueryPosition,
+  selectors: ZarrSelectors = {},
+  options: TransectQueryOptions & { chunkSize?: number } = {}
+): AsyncGenerator<FullTransectStreamChunk> {
+  const elevations = Array.from<number | string>(
+    requireDimension(backend, 'elevation') as ArrayLike<number | string>
+  );
+  const positions = sampleTransectPositions(start, end, options.samples);
+  const distancesKm = cumulativeDistances(positions);
+  const scalarSelectors = scalarizeSelectors(backend, selectors);
+  const chunkSize = Math.max(1, Math.floor(options.chunkSize ?? 4));
+  const elevationOffset = backend.queryIndexOffsets?.elevation ?? 0;
+  for (let startIndex = 0; startIndex < elevations.length; startIndex += chunkSize) {
+    throwIfAborted(options.signal);
+    const chunkElevations = elevations.slice(startIndex, startIndex + chunkSize);
+    const rows = await Promise.all(
+      chunkElevations.map(async (_, rowIndex) => {
+        const index = elevationOffset + startIndex + rowIndex;
+        const results = backend.queryPoints
+          ? await backend.queryPoints(
+              positions,
+              {
+                ...scalarSelectors,
+                elevation: { selected: [index, index + 1], type: 'index' }
+              },
+              options
+            )
+          : await mapConcurrent(
+              positions,
+              options.concurrency ?? 6,
+              options.signal,
+              position =>
+                backend.queryData(
+                  { type: 'Point', coordinates: position },
+                  { ...scalarSelectors, elevation: { selected: index, type: 'index' } },
+                  options
+                )
+            );
+        return {
+          variable: results[0]?.variable ?? '',
+          values: results.map(result => result.values[0] ?? null)
+        };
+      })
+    );
+    yield {
+      variable: rows[0]?.variable ?? '',
+      positions,
+      distancesKm,
+      elevations: chunkElevations,
+      values: rows.map(row => row.values),
+      startIndex,
+      done: startIndex + chunkElevations.length >= elevations.length
+    };
+  }
 }
