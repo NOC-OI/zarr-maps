@@ -133,6 +133,8 @@ export class ZarrTileProvider {
   private displayProjection: 'geographic' | 'web-mercator';
   private projectionDefinition?: CRSDefinition;
   private projection: ResolvedCRS | null = null;
+  /** Source-grid pixel-edge bounds used by the reprojection mesh. */
+  private sourceEdgeBounds: XYLimits | null = null;
 
   private noDataMin: number | undefined;
   private noDataMax: number | undefined;
@@ -159,6 +161,7 @@ export class ZarrTileProvider {
   private levelMetadata: Map<number, ZarrLevelMetadata> = new Map();
   private xyLimits: XYLimits | null = null;
   private geographicLonOffset360: { west: number; span: number } | null = null;
+  private geographicLongitudeIsGlobal = false;
 
   public coverageBoundsDeg: { west: number; south: number; east: number; north: number } | null =
     null;
@@ -821,17 +824,24 @@ export class ZarrTileProvider {
       let { xMin, xMax, yMin, yMax } = this.xyLimits!;
       const baseWidth = this.levelMetadata.get(0)?.width ?? zarrArray.shape[dimIndices.lon.index];
       const baseHeight = this.levelMetadata.get(0)?.height ?? zarrArray.shape[dimIndices.lat.index];
-      const dx = baseWidth > 0 ? (xMax - xMin) / baseWidth : 0;
-      const dy = baseHeight > 0 ? (yMax - yMin) / baseHeight : 0;
+      // Coordinate arrays describe cell centres, so their spacing has n - 1 intervals.
+      const dx = baseWidth > 1 ? (xMax - xMin) / (baseWidth - 1) : 0;
+      const dy = baseHeight > 1 ? (yMax - yMin) / (baseHeight - 1) : 0;
+      this.sourceEdgeBounds = {
+        xMin: xMin - dx / 2,
+        xMax: xMax + dx / 2,
+        yMin: yMin - dy / 2,
+        yMax: yMax + dy / 2
+      };
       if (this.crs === 'EPSG:4326') {
         const lonCount = zarrArray.shape[dimIndices.lon.index];
         const lonSpan = xMax - xMin;
         const lonStep = lonCount > 1 ? lonSpan / (lonCount - 1) : 0;
         const tolerance = Math.max(lonStep * 1.5, 1e-3);
-        const wrapsZeroTo360 =
-          xMin >= -tolerance && xMax <= 360 + tolerance && xMax >= 180 - tolerance;
         const isGlobal = lonStep > 0 && lonSpan >= 360 - lonStep - tolerance;
-        if (wrapsZeroTo360 && isGlobal) {
+        const usesWrappedLongitude = xMin < -180 - tolerance || xMax > 180 + tolerance;
+        this.geographicLongitudeIsGlobal = isGlobal;
+        if (isGlobal || usesWrappedLongitude) {
           this.geographicLonOffset360 = {
             west: xMin - lonStep / 2,
             span: lonSpan + lonStep
@@ -845,7 +855,7 @@ export class ZarrTileProvider {
         xMin -= dx / 2;
         xMax += dx / 2;
       }
-      if (this.crs === 'EPSG:4326' && this.geographicLonOffset360) {
+      if (this.crs === 'EPSG:4326' && this.geographicLongitudeIsGlobal) {
         const edgeOffset = this.renderTarget === 'cesium' ? dx / 2 : 0;
         this.coverageBoundsDeg = {
           west: -180 - edgeOffset,
@@ -857,6 +867,42 @@ export class ZarrTileProvider {
         this.coverageBoundsDeg = sourceBoundsToGeographic(
           { xMin, xMax, yMin, yMax },
           this.projection
+        );
+        if (this.crs === 'EPSG:4326' && this.geographicLonOffset360) {
+          const center = (this.coverageBoundsDeg.west + this.coverageBoundsDeg.east) / 2;
+          const shift = 360 * Math.round(center / 360);
+          this.coverageBoundsDeg.west -= shift;
+          this.coverageBoundsDeg.east -= shift;
+        }
+      }
+      // Cesium cannot safely drape a rectangle wider than one revolution. The
+      // expanded source bounds are still retained in sourceEdgeBounds for sampling.
+      if (this.renderTarget === 'cesium' &&
+          this.coverageBoundsDeg.east - this.coverageBoundsDeg.west >= 360 - 1e-6) {
+        this.coverageBoundsDeg.west = -180;
+        this.coverageBoundsDeg.east = 180;
+      }
+      if (this.renderTarget === 'cesium') {
+        // Longitude is undefined at the exact poles. A coordinate centre at
+        // +/-90 represents a degenerate row whose longitude samples all occupy
+        // one physical point. Stop at its inner half-cell boundary; otherwise
+        // Cesium collapses that row into a triangle fan and exposes a radial
+        // seam. Grids that merely reach a pole by their outer cell edge retain
+        // all but a metre-scale inset from the singularity.
+        const polarInset = 1e-5;
+        const southLimit = this.crs === 'EPSG:4326' && this.xyLimits.yMin <= -90 + 1e-9
+          ? -90 + dy / 2
+          : -90 + polarInset;
+        const northLimit = this.crs === 'EPSG:4326' && this.xyLimits.yMax >= 90 - 1e-9
+          ? 90 - dy / 2
+          : 90 - polarInset;
+        this.coverageBoundsDeg.south = Math.max(
+          this.coverageBoundsDeg.south,
+          southLimit
+        );
+        this.coverageBoundsDeg.north = Math.min(
+          this.coverageBoundsDeg.north,
+          northLimit
         );
       }
       this.coverageBoundsMerc = {
@@ -895,13 +941,20 @@ export class ZarrTileProvider {
   }
 
   /** Map a WGS84 position to normalized source-grid coordinates. */
-  private geographicToSource(longitude: number, latitude: number): [number, number] | null {
+  private geographicToSource(
+    longitude: number,
+    latitude: number,
+    referenceLongitude = longitude
+  ): [number, number] | null {
     if (!this.projection) return null;
     let adjustedLongitude = longitude;
     if (this.crs === 'EPSG:4326' && this.geographicLonOffset360) {
-      const { west } = this.geographicLonOffset360;
-      adjustedLongitude = ((longitude % 360) + 360) % 360;
-      if (adjustedLongitude < west) adjustedLongitude += 360;
+      const { west, span } = this.geographicLonOffset360;
+      const sourceCenter = west + span / 2;
+      const adjustedReference = referenceLongitude +
+        360 * Math.round((sourceCenter - referenceLongitude) / 360);
+      adjustedLongitude = longitude;
+      adjustedLongitude += 360 * Math.round((adjustedReference - adjustedLongitude) / 360);
     }
     try {
       const value = this.projection.forward([adjustedLongitude, latitude]);
@@ -1147,7 +1200,7 @@ export class ZarrTileProvider {
 
     if (
       this.renderTarget === 'web-map' &&
-      this.geographicLonOffset360 &&
+      this.geographicLongitudeIsGlobal &&
       boundsDeg.east - boundsDeg.west >= 360 - 1e-9
     ) {
       const middle = (boundsDeg.west + boundsDeg.east) / 2;
@@ -1196,6 +1249,14 @@ export class ZarrTileProvider {
     if (!this.xyLimits || !this.projection) return this.emptyCanvas();
     const { dataWidth, dataHeight, currentArray, multiscaleLevel } = await this.getArrayForZoom(z);
     const { xMin, xMax, yMin, yMax } = this.xyLimits;
+    const edgeBounds = this.sourceEdgeBounds ?? this.xyLimits;
+    // A cyclic grid whose centres are 0..359 has edges at -0.5..359.5, while
+    // the western tile's exact 0-degree endpoint unwraps to 360. Permit that
+    // remaining half cell and clamp it to the last texel below.
+    const cyclicXPadding = this.geographicLongitudeIsGlobal
+      ? Math.max(edgeBounds.xMax - xMax, xMin - edgeBounds.xMin)
+      : 0;
+    const referenceLongitude = (boundsDeg.west + boundsDeg.east) / 2;
     const divisions = 32;
     type Vertex = { px: number; py: number; sx: number; sy: number; valid: boolean };
     const grid: Vertex[][] = [];
@@ -1215,11 +1276,17 @@ export class ZarrTileProvider {
         const longitude = boundsDeg.west + qx * (boundsDeg.east - boundsDeg.west);
         let sx = NaN;
         let sy = NaN;
-        const source = this.geographicToSource(longitude, latitude);
+        const source = this.geographicToSource(longitude, latitude, referenceLongitude);
         if (source) [sx, sy] = source;
         const valid = Number.isFinite(sx) && Number.isFinite(sy) &&
-          sx >= xMin && sx <= xMax && sy >= yMin && sy <= yMax;
+          sx >= edgeBounds.xMin - cyclicXPadding &&
+          sx <= edgeBounds.xMax + cyclicXPadding &&
+          sy >= edgeBounds.yMin && sy <= edgeBounds.yMax;
         if (valid) {
+          // Pixel-edge coordinates sample the nearest outer cell. Keeping the
+          // clamped value in the mesh also avoids UVs outside the data texture.
+          sx = Math.max(xMin, Math.min(xMax, sx));
+          sy = Math.max(yMin, Math.min(yMax, sy));
           sourceX.push(sx);
           sourceY.push(sy);
         }
@@ -1233,8 +1300,13 @@ export class ZarrTileProvider {
     const maxSourceX = Math.max(...sourceX);
     const minSourceY = Math.min(...sourceY);
     const maxSourceY = Math.max(...sourceY);
-    const sourceToColumn = (x: number) => (x - xMin) / (xMax - xMin) * dataWidth;
-    const sourceToAscendingRow = (y: number) => (y - yMin) / (yMax - yMin) * dataHeight;
+    // Coordinate arrays contain cell centres: xMin/yMin are index 0 and
+    // xMax/yMax are index n - 1. Mapping them to n placed the final centre one
+    // pixel beyond the texture and made adjacent tiles sample different cells.
+    const sourceToColumn = (x: number) =>
+      (x - xMin) / (xMax - xMin) * Math.max(0, dataWidth - 1);
+    const sourceToAscendingRow = (y: number) =>
+      (y - yMin) / (yMax - yMin) * Math.max(0, dataHeight - 1);
     const startX = Math.max(0, Math.min(dataWidth - 1, Math.floor(sourceToColumn(minSourceX))));
     const endX = Math.max(startX + 1, Math.min(dataWidth, Math.ceil(sourceToColumn(maxSourceX)) + 1));
     const ascendingStart = Math.max(0, Math.min(dataHeight - 1, Math.floor(sourceToAscendingRow(minSourceY))));
@@ -1262,8 +1334,9 @@ export class ZarrTileProvider {
 
     const vertices: number[] = [];
     const uv = (vertex: Vertex): [number, number] => [
-      (sourceToColumn(vertex.sx) - startX) / width,
-      (sourceToAscendingRow(vertex.sy) - ascendingStart) / height
+      // WebGL samples texel centres at (index + 0.5) / textureSize.
+      (sourceToColumn(vertex.sx) - startX + 0.5) / width,
+      (sourceToAscendingRow(vertex.sy) - ascendingStart + 0.5) / height
     ];
     const push = (vertex: Vertex) => {
       const [u, v] = uv(vertex);
