@@ -35,7 +35,7 @@ Initialization starts immediately. Await [readyPromise](#readypromise) before re
 ### coverageBoundsDeg
 
 ```ts
-coverageBoundsDeg: 
+coverageBoundsDeg:
   | {
   east: number;
   north: number;
@@ -50,7 +50,7 @@ coverageBoundsDeg:
 ### coverageBoundsMerc
 
 ```ts
-coverageBoundsMerc: 
+coverageBoundsMerc:
   | {
   xMax: number;
   xMin: number;
@@ -208,10 +208,11 @@ Aborts outstanding tile requests and prevents further rendering work.
 
 ```ts
 getFullTransect(
-   start, 
-   end, 
-   selectors?, 
-options?): Promise<FullTransectResult>;
+   start,
+   end,
+   selectors?,
+   options?
+): Promise<FullTransectResult>;
 ```
 
 Samples every vertical level along a line between two WGS84 positions.
@@ -235,9 +236,10 @@ Samples every vertical level along a line between two WGS84 positions.
 
 ```ts
 getTimeSeries(
-   position, 
-   selectors?, 
-options?): Promise<QueryResult>;
+   position,
+   selectors?,
+   options?
+): Promise<QueryResult>;
 ```
 
 Queries every time coordinate at a WGS84 position.
@@ -262,10 +264,11 @@ Values and their time coordinates.
 
 ```ts
 getTransect(
-   start, 
-   end, 
-   selectors?, 
-options?): Promise<TransectResult>;
+   start,
+   end,
+   selectors?,
+   options?
+): Promise<TransectResult>;
 ```
 
 Samples one selected level along a line between two WGS84 positions.
@@ -289,9 +292,10 @@ Samples one selected level along a line between two WGS84 positions.
 
 ```ts
 getVerticalProfile(
-   position, 
-   selectors?, 
-options?): Promise<QueryResult>;
+   position,
+   selectors?,
+   options?
+): Promise<QueryResult>;
 ```
 
 Queries every vertical coordinate at a WGS84 position.
@@ -316,9 +320,10 @@ Values and their vertical coordinates.
 
 ```ts
 queryData(
-   geometry, 
-   selectors?, 
-options?): Promise<QueryResult>;
+   geometry,
+   selectors?,
+   options?
+): Promise<QueryResult>;
 ```
 
 Queries the nearest raster cell for a WGS84 GeoJSON point.
@@ -351,9 +356,10 @@ One ranged non-spatial selector produces a profile or time series.
 
 ```ts
 queryPoints(
-   positions, 
-   selectors, 
-options): Promise<QueryResult[]>;
+   positions,
+   selectors?,
+   options?
+): Promise<QueryResult[]>;
 ```
 
 Queries several WGS84 points using the same selectors and array level.
@@ -363,8 +369,8 @@ Queries several WGS84 points using the same selectors and array level.
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `positions` | [`QueryPosition`](../type-aliases/QueryPosition.md)[] | Positions as `[longitude, latitude]` pairs. |
-| `selectors` | [`ZarrSelectors`](../interfaces/ZarrSelectors.md) | Selectors shared by every point. |
-| `options` | [`TransectQueryOptions`](../interfaces/TransectQueryOptions.md) | Resolution, concurrency, coordinate, and cancellation options. |
+| `selectors?` | [`ZarrSelectors`](../interfaces/ZarrSelectors.md) | Selectors shared by every point. |
+| `options?` | [`TransectQueryOptions`](../interfaces/TransectQueryOptions.md) | Resolution, concurrency, coordinate, and cancellation options. |
 
 #### Returns
 
@@ -382,9 +388,10 @@ Source chunks are deduplicated so transects do not fetch and decode a chunk per 
 
 ```ts
 renderTile(
-   boundsDeg, 
-   z, 
-key): Promise<HTMLCanvasElement | ImageBitmap>;
+   boundsDeg,
+   z,
+   key
+): Promise<HTMLCanvasElement | ImageBitmap>;
 ```
 
 Fetches and renders a geographic tile into a canvas.
@@ -406,6 +413,106 @@ A canvas or transferable image bitmap containing the rendered tile.
 #### Throws
 
 If initialization failed, the provider was destroyed, or rendering cannot complete.
+
+***
+
+### streamFullTransect()
+
+```ts
+streamFullTransect(
+   start,
+   end,
+   selectors?,
+   options?
+): AsyncGenerator<FullTransectStreamChunk>;
+```
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `start` | [`QueryPosition`](../type-aliases/QueryPosition.md) |
+| `end` | [`QueryPosition`](../type-aliases/QueryPosition.md) |
+| `selectors?` | [`ZarrSelectors`](../interfaces/ZarrSelectors.md) |
+| `options?` | [`TransectQueryOptions`](../interfaces/TransectQueryOptions.md) & `object` |
+
+#### Returns
+
+`AsyncGenerator`\<[`FullTransectStreamChunk`](../interfaces/FullTransectStreamChunk.md)\>
+
+***
+
+### streamTimeSeries()
+
+```ts
+streamTimeSeries(
+   position,
+   selectors?,
+   options?
+): AsyncGenerator<QueryResult, any, any>;
+```
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `position` | [`QueryPosition`](../type-aliases/QueryPosition.md) |
+| `selectors?` | [`ZarrSelectors`](../interfaces/ZarrSelectors.md) |
+| `options?` | [`QueryStreamOptions`](../interfaces/QueryStreamOptions.md) |
+
+#### Returns
+
+`AsyncGenerator`\<[`QueryResult`](../interfaces/QueryResult.md), `any`, `any`\>
+
+***
+
+### streamTransect()
+
+```ts
+streamTransect(
+   start,
+   end,
+   selectors?,
+   options?
+): AsyncGenerator<TransectStreamChunk>;
+```
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `start` | [`QueryPosition`](../type-aliases/QueryPosition.md) |
+| `end` | [`QueryPosition`](../type-aliases/QueryPosition.md) |
+| `selectors?` | [`ZarrSelectors`](../interfaces/ZarrSelectors.md) |
+| `options?` | [`TransectQueryOptions`](../interfaces/TransectQueryOptions.md) & `object` |
+
+#### Returns
+
+`AsyncGenerator`\<[`TransectStreamChunk`](../interfaces/TransectStreamChunk.md)\>
+
+***
+
+### streamVerticalProfile()
+
+```ts
+streamVerticalProfile(
+   position,
+   selectors?,
+   options?
+): AsyncGenerator<QueryResult, any, any>;
+```
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `position` | [`QueryPosition`](../type-aliases/QueryPosition.md) |
+| `selectors?` | [`ZarrSelectors`](../interfaces/ZarrSelectors.md) |
+| `options?` | [`QueryStreamOptions`](../interfaces/QueryStreamOptions.md) |
+
+#### Returns
+
+`AsyncGenerator`\<[`QueryResult`](../interfaces/QueryResult.md), `any`, `any`\>
 
 ***
 

@@ -242,6 +242,25 @@ const transect = await layer.getTransect([-6, 36], [-4, 37], {}, { samples: 100 
 const fullTransect = await layer.getFullTransect([-6, 36], [-4, 37]);
 ```
 
+Long-running ranged queries can be consumed progressively with the streaming methods. Existing promise-based methods remain available when a complete result is preferred:
+
+```ts
+for await (const chunk of layer.streamTimeSeries([-5.4, 36.1], {}, { chunkSize: 32 })) {
+  updateSeries(chunk);
+}
+
+for await (const chunk of layer.streamTransect(
+  [-6, 36],
+  [-4, 37],
+  {},
+  { samples: 100, chunkSize: 16 }
+)) {
+  updateTransect(chunk);
+}
+```
+
+Streaming methods support `AbortSignal` through the options object and yield chunks in query order. `streamVerticalProfile` and `streamFullTransect` are also available for vertical data.
+
 ---
 
 ## Run the demo locally

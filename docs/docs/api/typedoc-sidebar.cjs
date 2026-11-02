@@ -180,6 +180,11 @@ const typedocSidebar = {
             },
             {
               type: "doc",
+              id: "api/zarr-maps-tiling/interfaces/FullTransectStreamChunk",
+              label: "FullTransectStreamChunk"
+            },
+            {
+              type: "doc",
               id: "api/zarr-maps-tiling/interfaces/QueryBackend",
               label: "QueryBackend"
             },
@@ -207,6 +212,11 @@ const typedocSidebar = {
               type: "doc",
               id: "api/zarr-maps-tiling/interfaces/QueryResult",
               label: "QueryResult"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/interfaces/QueryStreamOptions",
+              label: "QueryStreamOptions"
             },
             {
               type: "doc",
@@ -242,6 +252,11 @@ const typedocSidebar = {
               type: "doc",
               id: "api/zarr-maps-tiling/interfaces/TransectResult",
               label: "TransectResult"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/interfaces/TransectStreamChunk",
+              label: "TransectStreamChunk"
             },
             {
               type: "doc",
@@ -509,6 +524,26 @@ const typedocSidebar = {
               type: "doc",
               id: "api/zarr-maps-tiling/functions/sourceBoundsToGeographic",
               label: "sourceBoundsToGeographic"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/functions/streamFullTransect",
+              label: "streamFullTransect"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/functions/streamTimeSeries",
+              label: "streamTimeSeries"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/functions/streamTransect",
+              label: "streamTransect"
+            },
+            {
+              type: "doc",
+              id: "api/zarr-maps-tiling/functions/streamVerticalProfile",
+              label: "streamVerticalProfile"
             },
             {
               type: "doc",

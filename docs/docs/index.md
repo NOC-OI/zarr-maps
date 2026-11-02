@@ -32,7 +32,7 @@ It provides **Leaflet and OpenLayers layers** that stream and render multidimens
 - **CRS-aware** for regular rectilinear grids in any source CRS understood by proj4
 - **WebGL-accelerated rendering**
 - **Dynamic styling** (colormap, opacity, scaling, slices, animation)
-- **Point, time-series, vertical-profile, and transect queries**
+- **Point, time-series, vertical-profile, and transect queries, including progressive streaming**
 
 ---
 
@@ -44,7 +44,7 @@ Zarr-maps is a collection of four packages. Most applications install one map-li
 
 The framework-independent core of Zarr-maps. It opens Zarr v2 and v3 datasets through [Zarrita](https://zarrita.dev/), selects multidimensional slices, chooses an appropriate resolution from multiscale datasets, and renders map tiles with WebGL. It also provides point, time-series, vertical-profile, and transect queries through `ZarrTileProvider`.
 
-Use this package directly when building an integration for another mapping framework or when you need Zarr querying and tile rendering without Leaflet or OpenLayers. See the [`zarr-maps-tiling` API](api/zarr-maps-tiling/index.md).
+Use this package directly when building an integration for another mapping framework or when you need Zarr querying and tile rendering without Leaflet or OpenLayers. The promise-based query methods and async-iterable streaming methods are available from `ZarrTileProvider`. See the [`zarr-maps-tiling` API](api/zarr-maps-tiling/index.md).
 
 ### `zarr-maps-colormap`
 

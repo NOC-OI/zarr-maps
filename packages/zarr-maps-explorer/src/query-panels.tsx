@@ -30,6 +30,37 @@ export interface FullTransectQueryResult {
   elevations: (number | string)[];
 }
 
+type PointQuerySource = Promise<PointQueryResult> | AsyncIterable<PointQueryResult>;
+
+function isAsyncIterable<T>(value: Promise<T> | AsyncIterable<T>): value is AsyncIterable<T> {
+  return Symbol.asyncIterator in value;
+}
+
+async function consumePointQuery(
+  source: PointQuerySource,
+  onChunk: (chunk: PointQueryResult) => void
+): Promise<void> {
+  if (isAsyncIterable(source)) {
+    for await (const chunk of source) onChunk(chunk);
+  } else {
+    onChunk(await source);
+  }
+}
+
+function mergePointResult(previous: PointQueryResult | null, chunk: PointQueryResult) {
+  if (!previous) return chunk;
+  return {
+    ...chunk,
+    variable: chunk.variable || previous.variable,
+    values: [...previous.values, ...chunk.values],
+    coordinates: Object.fromEntries(
+      Array.from(new Set([...Object.keys(previous.coordinates), ...Object.keys(chunk.coordinates)])).map(
+        key => [key, [...(previous.coordinates[key] ?? []), ...(chunk.coordinates[key] ?? [])]]
+      )
+    )
+  };
+}
+
 function queryCoordinates(result: PointQueryResult, mode: PointQueryMode) {
   const key = Object.keys(result.coordinates).find(name =>
     mode === 'time'
@@ -114,7 +145,7 @@ interface PointQueryInfoProps {
   position: QueryPosition;
   hasProfile: boolean;
   hasTimeSeries: boolean;
-  query: (mode: PointQueryMode, signal: AbortSignal) => Promise<PointQueryResult>;
+  query: (mode: PointQueryMode, signal: AbortSignal) => PointQuerySource;
 }
 
 export function PointQueryInfo({
@@ -132,8 +163,10 @@ export function PointQueryInfo({
     const controller = new AbortController();
     setLoading(true);
     setError('');
-    void query(mode, controller.signal)
-      .then(setResult)
+    setResult(null);
+    void consumePointQuery(query(mode, controller.signal), chunk =>
+      setResult(previous => mergePointResult(previous, chunk))
+    )
       .catch(reason => {
         if (!controller.signal.aborted)
           setError(reason instanceof Error ? reason.message : 'Query failed');
@@ -182,8 +215,7 @@ export function PointQueryInfo({
           {error}
         </div>
       )}
-      {!loading &&
-        !error &&
+      {!error &&
         result &&
         (result.values.length ? (
           <div className="rounded-xl border border-white/12 bg-white/[.035] p-4">
@@ -302,7 +334,7 @@ interface TransectQueryInfoProps {
     full: boolean,
     samples: number,
     signal: AbortSignal
-  ) => Promise<TransectQueryResult | FullTransectQueryResult>;
+  ) => AsyncIterable<TransectQueryResult | FullTransectQueryResult>;
   colormap: string;
   scale: [number, number];
 }
@@ -329,9 +361,31 @@ export function TransectQueryInfo({
     setLoading(true);
     setError('');
     setResult(null);
-    void query(points[0], points[1], full, samples, controller.signal)
-      .then(setResult)
-      .catch(reason => {
+    void (async () => {
+      for await (const chunk of query(points[0], points[1], full, samples, controller.signal)) {
+        setResult(previous => {
+          if (!previous) return chunk;
+          if ('elevations' in chunk && 'elevations' in previous) {
+            return {
+              ...chunk,
+              positions: chunk.positions,
+              distancesKm: chunk.distancesKm,
+              elevations: [...previous.elevations, ...chunk.elevations],
+              values: [...previous.values, ...chunk.values]
+            };
+          }
+          if (!('elevations' in chunk) && !('elevations' in previous)) {
+            return {
+              ...chunk,
+              positions: [...previous.positions, ...chunk.positions],
+              distancesKm: [...previous.distancesKm, ...chunk.distancesKm],
+              values: [...previous.values, ...chunk.values]
+            };
+          }
+          return chunk;
+        });
+      }
+    })().catch(reason => {
         if (!controller.signal.aborted)
           setError(reason instanceof Error ? reason.message : 'Query failed');
       })
@@ -394,8 +448,7 @@ export function TransectQueryInfo({
       ))}
       {loading && <div className="mt-3 text-yellow-300">Querying transect…</div>}
       {error && <div className="mt-3 text-red-300">{error}</div>}
-      {!loading &&
-        result &&
+      {result &&
         ('elevations' in result ? (
           <FullTransectChart result={result} colormap={colormap} scale={scale} />
         ) : (
