@@ -143,3 +143,28 @@ const transect = await layer.getTransect([-6, 36], [-4, 37], {}, { samples: 100 
 ```
 
 Queries do not change the slice displayed on the map. See the [`OLLayerOptions` API](api/zarr-maps-ol/interfaces/OLLayerOptions.md) for all configuration options.
+
+### Stream query results
+
+For long-running time-series, profile, or transect queries, use the streaming methods to receive
+partial results as they become available. They return async iterables and preserve the query order:
+
+```ts
+for await (const chunk of layer.streamTimeSeries(position, {}, { chunkSize: 32 })) {
+  updateChart(chunk);
+}
+
+for await (const chunk of layer.streamTransect(
+  [-6, 36],
+  [-4, 37],
+  {},
+  { samples: 100, chunkSize: 16 }
+)) {
+  updateTransectChart(chunk);
+}
+```
+
+The available methods are `streamTimeSeries`, `streamVerticalProfile`, `streamTransect`, and
+`streamFullTransect`. Use `chunkSize` to control how much data each iteration returns and pass an
+`AbortSignal` through the options to cancel a query. The existing promise-based query methods
+remain available when a complete result is preferred.

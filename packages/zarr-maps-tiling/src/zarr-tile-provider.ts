@@ -22,7 +22,11 @@ import {
   getFullTransect as queryFullTransect,
   getTimeSeries as queryTimeSeries,
   getTransect as queryTransect,
-  getVerticalProfile as queryVerticalProfile
+  getVerticalProfile as queryVerticalProfile,
+  streamFullTransect as queryFullTransectStream,
+  streamTimeSeries as queryTimeSeriesStream,
+  streamTransect as queryTransectStream,
+  streamVerticalProfile as queryVerticalProfileStream
 } from './query-api';
 import type {
   CRS,
@@ -36,12 +40,15 @@ import type {
   ZarrSelectors,
   QueryGeometry,
   QueryOptions,
+  QueryStreamOptions,
   QueryResult,
   QueryPosition,
   ResolvedCRS,
   TransectQueryOptions,
   TransectResult,
+  TransectStreamChunk,
   FullTransectResult,
+  FullTransectStreamChunk,
   MultiscaleFormat,
   ZarrTileOptions,
   TileCacheStats
@@ -84,6 +91,22 @@ export class ZarrTileProvider {
     return queryVerticalProfile(this, position, selectors, options);
   }
 
+  streamTimeSeries(
+    position: QueryPosition,
+    selectors?: ZarrSelectors,
+    options?: QueryStreamOptions
+  ) {
+    return queryTimeSeriesStream(this, position, selectors, options);
+  }
+
+  streamVerticalProfile(
+    position: QueryPosition,
+    selectors?: ZarrSelectors,
+    options?: QueryStreamOptions
+  ) {
+    return queryVerticalProfileStream(this, position, selectors, options);
+  }
+
   /**
    * Samples one selected level along a line between two WGS84 positions.
    *
@@ -116,6 +139,24 @@ export class ZarrTileProvider {
     options?: TransectQueryOptions
   ): Promise<FullTransectResult> {
     return queryFullTransect(this, start, end, selectors, options);
+  }
+
+  streamTransect(
+    start: QueryPosition,
+    end: QueryPosition,
+    selectors?: ZarrSelectors,
+    options?: TransectQueryOptions & { chunkSize?: number }
+  ): AsyncGenerator<TransectStreamChunk> {
+    return queryTransectStream(this, start, end, selectors, options);
+  }
+
+  streamFullTransect(
+    start: QueryPosition,
+    end: QueryPosition,
+    selectors?: ZarrSelectors,
+    options?: TransectQueryOptions & { chunkSize?: number }
+  ): AsyncGenerator<FullTransectStreamChunk> {
+    return queryFullTransectStream(this, start, end, selectors, options);
   }
 
   private url: string;

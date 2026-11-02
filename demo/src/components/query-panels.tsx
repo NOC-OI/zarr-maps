@@ -18,9 +18,9 @@ export function PointQueryPanel({
 }) {
   const query = useCallback(
     (mode: PointQueryMode, signal: AbortSignal) => {
-      const options = { level: 'finest' as const, signal };
-      if (mode === 'profile') return provider.getVerticalProfile(position, undefined, options);
-      if (mode === 'time') return provider.getTimeSeries(position, undefined, options);
+      const options = { level: 'finest' as const, signal, chunkSize: 32 };
+      if (mode === 'profile') return provider.streamVerticalProfile(position, undefined, options);
+      if (mode === 'time') return provider.streamTimeSeries(position, undefined, options);
       return provider.queryData({ type: 'Point', coordinates: position }, undefined, options);
     },
     [position, provider]
@@ -62,8 +62,8 @@ export function TransectQueryPanel({
     ) => {
       const options = { samples, concurrency: 6, signal };
       return full
-        ? provider.getFullTransect(start, end, undefined, options)
-        : provider.getTransect(start, end, undefined, options);
+        ? provider.streamFullTransect(start, end, undefined, { ...options, chunkSize: 2 })
+        : provider.streamTransect(start, end, undefined, { ...options, chunkSize: 16 });
     },
     [provider]
   );

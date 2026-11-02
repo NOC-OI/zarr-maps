@@ -102,6 +102,12 @@ export interface QueryOptions {
   includeSpatialCoordinates?: boolean;
 }
 
+/** Controls how many coordinates are returned by each streamed query chunk. */
+export interface QueryStreamOptions extends QueryOptions {
+  /** Number of ranged coordinates or transect positions per chunk. Defaults to 32. */
+  chunkSize?: number;
+}
+
 /** Values and coordinates returned from a shared Zarr query. */
 export interface QueryResult {
   /**
@@ -153,6 +159,14 @@ export interface TransectQueryOptions extends QueryOptions {
   concurrency?: number;
 }
 
+/** A streamed one-level transect chunk. */
+export interface TransectStreamChunk extends TransectResult {
+  /** Zero-based position of this chunk in the complete transect. */
+  startIndex: number;
+  /** Whether this is the final chunk. */
+  done: boolean;
+}
+
 /** A one-level transect. Values preserve no-data gaps as null. */
 export interface TransectResult {
   variable: string;
@@ -168,6 +182,14 @@ export interface FullTransectResult {
   distancesKm: number[];
   elevations: (number | string)[];
   values: (number | null)[][];
+}
+
+/** A streamed full-depth transect chunk. */
+export interface FullTransectStreamChunk extends FullTransectResult {
+  /** Zero-based elevation row of this chunk in the complete transect. */
+  startIndex: number;
+  /** Whether this is the final chunk. */
+  done: boolean;
 }
 
 /**
