@@ -8,7 +8,6 @@ export function EditColors({ layerLegendName }: { layerLegendName: string }) {
     useLayersManagementHandle();
 
   const handleSubmit = ({ colormap, scale }: { colormap: string; scale: [number, number] }) => {
-    setLayerAction('update-colors');
     setActualLayer(layerLegendName);
     setLayerLegend((layerLegend: LayersLegendType) => {
       const newLayerLegend = { ...layerLegend };
@@ -30,6 +29,7 @@ export function EditColors({ layerLegendName }: { layerLegendName: string }) {
       };
       return { ...prev, [layerLegendName]: updatedLayer };
     });
+    setLayerAction('update-colors');
   };
 
   return (

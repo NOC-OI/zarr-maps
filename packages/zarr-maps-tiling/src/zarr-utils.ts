@@ -879,6 +879,68 @@ export function extractNoDataMetadata(zarrArray: zarr.Array<any>): {
   return { metadataMin, metadataMax, fillValue, useFillValue };
 }
 
+/** Fully resolved packing and no-data metadata for a numeric Zarr variable. */
+export interface ResolvedValueMetadata {
+  /** Multiplier used to decode a packed value. */
+  scaleFactor: number;
+  /** Offset added after applying {@link scaleFactor}. */
+  addOffset: number;
+  /** Exact raw packed value representing missing data. */
+  fillValue: number | undefined;
+  /** Whether {@link fillValue} should be compared with raw values. */
+  useFillValue: boolean;
+  /** Minimum valid decoded value. */
+  noDataMin: number;
+  /** Maximum valid decoded value. */
+  noDataMax: number;
+}
+
+/**
+ * Resolves numeric packing and no-data metadata from an ordered attribute hierarchy.
+ *
+ * Later attribute sources override earlier ones, so callers can pass store,
+ * group, and array attributes in increasing order of specificity. Fill values
+ * apply to raw packed samples; valid ranges apply after scale/offset decoding.
+ * User no-data bounds retain the precedence rules of {@link resolveNoDataRange}.
+ *
+ * @param attributeSources - Attribute objects ordered from least to most specific.
+ * @param userMin - Optional user-defined minimum valid decoded value.
+ * @param userMax - Optional user-defined maximum valid decoded value.
+ */
+export function resolveValueMetadata(
+  attributeSources: Array<Record<string, unknown> | undefined>,
+  userMin?: number,
+  userMax?: number
+): ResolvedValueMetadata {
+  const sources = attributeSources.filter(
+    (attrs): attrs is Record<string, unknown> => attrs !== undefined
+  );
+  const findMostSpecific = (names: string[]): unknown => {
+    for (let index = sources.length - 1; index >= 0; index--) {
+      for (const name of names) {
+        if (sources[index][name] !== undefined) return sources[index][name];
+      }
+    }
+    return undefined;
+  };
+  const metadataMin = findMostSpecific(['valid_min']);
+  const metadataMax = findMostSpecific(['valid_max']);
+  const fillValue = findMostSpecific(['_FillValue', 'missing_value']);
+  const range = resolveNoDataRange(
+    userMin,
+    userMax,
+    metadataMin === undefined ? undefined : Number(metadataMin),
+    metadataMax === undefined ? undefined : Number(metadataMax)
+  );
+  return {
+    scaleFactor: Number(findMostSpecific(['scale_factor']) ?? 1),
+    addOffset: Number(findMostSpecific(['add_offset']) ?? 0),
+    fillValue: fillValue === undefined ? undefined : Number(fillValue),
+    useFillValue: fillValue !== undefined,
+    ...range
+  };
+}
+
 /**
  * Detects the coordinate reference system (CRS) of a Zarr dataset based on metadata or coordinate range.
  * Defaults to EPSG:4326 (WGS84) if uncertain.
