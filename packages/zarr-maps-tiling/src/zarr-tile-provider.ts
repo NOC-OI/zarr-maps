@@ -6,12 +6,11 @@ import {
   calculateNearestIndex,
   calculateSliceArgsRequestImage,
   detectCRS,
-  extractNoDataMetadata,
   getXYLimits,
   initZarrDataset,
   loadDimensionValues,
   openLevelArray,
-  resolveNoDataRange
+  resolveValueMetadata
 } from './zarr-utils';
 import { createFetchStore, createTransformedFetch } from './store-utils';
 import { createColorRampTexture, createProgram, createShader } from './webgl-utils';
@@ -842,21 +841,17 @@ export class ZarrTileProvider {
         this.zarrVersion
       );
 
-      const meta = extractNoDataMetadata(zarrArray);
-      const range = resolveNoDataRange(
+      const valueMetadata = resolveValueMetadata(
+        [attrs, zarrArray.attrs as Record<string, unknown>],
         this.noDataMin,
-        this.noDataMax,
-        meta.metadataMin,
-        meta.metadataMax
+        this.noDataMax
       );
-      this.noDataMin = range.noDataMin;
-      this.noDataMax = range.noDataMax;
-
-      this.fillValue = meta.useFillValue ? meta.fillValue : 0;
-      this.useFillValue = meta.useFillValue;
-
-      this.scaleFactor = attrs.scale_factor ?? 1;
-      this.offset = attrs.add_offset ?? 0;
+      this.noDataMin = valueMetadata.noDataMin;
+      this.noDataMax = valueMetadata.noDataMax;
+      this.fillValue = valueMetadata.useFillValue ? valueMetadata.fillValue : 0;
+      this.useFillValue = valueMetadata.useFillValue;
+      this.scaleFactor = valueMetadata.scaleFactor;
+      this.offset = valueMetadata.addOffset;
       this.crs = this.crs || (this.projectionDefinition ? 'CUSTOM:SOURCE' : null) ||
         (await detectCRS(attrs, zarrArray, this.xyLimits));
       this.projection = resolveCRS(this.crs, this.projectionDefinition, attrs, zarrArray.attrs);
