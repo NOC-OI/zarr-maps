@@ -818,7 +818,7 @@ export class ZarrTileProvider {
       this.store = limitStoreRequests(store, ZarrTileProvider.concurrencyLimit);
       this.root = zarr.root(this.store);
 
-      const { zarrArray, levelInfos, dimIndices, attrs } = await initZarrDataset(
+      const { zarrArray, levelInfos, dimIndices, attrs, zarrVersion } = await initZarrDataset(
         this.store,
         this.root,
         this.variable,
@@ -829,6 +829,7 @@ export class ZarrTileProvider {
         undefined,
         this.multiscaleFormat
       );
+      this.zarrVersion = zarrVersion;
       this.zarrArray = zarrArray;
       this.levelInfos = levelInfos;
       this.dimIndices = dimIndices;
@@ -1204,7 +1205,13 @@ export class ZarrTileProvider {
       return { dataWidth, dataHeight, currentArray: this.zarrArray, multiscaleLevel: null };
     }
 
-    const currentArray = await openLevelArray(this.root, lvl, this.variable, this.levelCache);
+    const currentArray = await openLevelArray(
+      this.root,
+      lvl,
+      this.variable,
+      this.levelCache,
+      this.zarrVersion
+    );
     const idx = this.levelInfos.indexOf(lvl);
     const meta = this.levelMetadata.get(idx);
 

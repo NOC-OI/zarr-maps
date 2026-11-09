@@ -543,14 +543,30 @@ export async function initZarrDataset(
   dimIndices: DimIndicesProps;
   attrs: Record<string, any>;
   multiscaleLevel?: number;
+  zarrVersion: 2 | 3;
 }> {
-  let localFunc = zarr.open as any;
-  if (zarrVersion === 2) {
-    localFunc = zarr.open.v2;
-  } else if (zarrVersion === 3) {
-    localFunc = zarr.open.v3;
+  let detectedZarrVersion: 2 | 3;
+  let zarrGroup: zarr.Group<any>;
+  if (zarrVersion !== null) {
+    detectedZarrVersion = zarrVersion;
+    zarrGroup = zarrVersion === 3
+      ? await zarr.open.v3(root, { kind: 'group' })
+      : await zarr.open.v2(root, { kind: 'group' });
+  } else {
+    try {
+      zarrGroup = await zarr.open.v3(root, { kind: 'group' });
+      detectedZarrVersion = 3;
+    } catch (v3Error) {
+      try {
+        zarrGroup = await zarr.open.v2(root, { kind: 'group' });
+        detectedZarrVersion = 2;
+      } catch (v2Error) {
+        const error = new Error('Unable to open dataset as Zarr v3 or v2');
+        (error as Error & { causes?: unknown[] }).causes = [v3Error, v2Error];
+        throw error;
+      }
+    }
   }
-  const zarrGroup = await localFunc(root, { kind: 'group' });
   const attrs = (zarrGroup.attrs ?? {}) as Record<string, any>;
   let zarrArray: zarr.Array<any> | null = null;
   let levelInfos: string[] = [];
@@ -574,7 +590,13 @@ export async function initZarrDataset(
     ].filter(index => index >= 0 && index < levelPaths.length);
     for (const i of levelIndices) {
       const levelPath = levelPaths[i];
-      const levelArr = await openLevelArray(root, levelPath, variable, levelCache);
+      const levelArr = await openLevelArray(
+        root,
+        levelPath,
+        variable,
+        levelCache,
+        detectedZarrVersion
+      );
 
       const levelRoot = await root.resolve(levelPath);
       const { existingCoordinates, array_dimensions } = await calculateCoordinatesFromAttrs(
@@ -583,7 +605,7 @@ export async function initZarrDataset(
         coordinates,
         store,
         variable,
-        zarrVersion,
+        detectedZarrVersion,
         pyramidMode
       );
       coordinates = existingCoordinates;
@@ -593,6 +615,16 @@ export async function initZarrDataset(
       const height = levelArr.shape[dims.lat.index];
 
       levelMetadata.set(i, { width, height });
+    }
+    if (multiscaleLevel === undefined) {
+      let lowestResolutionPixels = Number.POSITIVE_INFINITY;
+      for (const [index, metadata] of levelMetadata) {
+        const pixels = metadata.width * metadata.height;
+        if (pixels < lowestResolutionPixels) {
+          lowestResolutionPixels = pixels;
+          multiscaleLevel = index;
+        }
+      }
     }
     let levelInfo = levelInfos[multiscaleLevel ?? 0];
     if (!levelInfo) {
@@ -604,15 +636,10 @@ export async function initZarrDataset(
       multiscaleLevel = 0;
       levelInfo = levelInfos[multiscaleLevel];
     }
-    zarrArray = await openLevelArray(root, levelInfo, variable, levelCache);
+    zarrArray = await openLevelArray(root, levelInfo, variable, levelCache, detectedZarrVersion);
   } else {
     const arrayLocation = await root.resolve(variable);
-    let localFunc = zarr.open as any;
-    if (zarrVersion === 2) {
-      localFunc = zarr.open.v2;
-    } else if (zarrVersion === 3) {
-      localFunc = zarr.open.v3;
-    }
+    const localFunc = detectedZarrVersion === 3 ? zarr.open.v3 : zarr.open.v2;
     zarrArray = await localFunc(arrayLocation, { kind: 'array' });
   }
   if (!zarrArray) {
@@ -624,7 +651,7 @@ export async function initZarrDataset(
     coordinates,
     store,
     variable,
-    zarrVersion,
+    detectedZarrVersion,
     pyramidMode
   );
   const dimIndices = await identifyDimensionIndices(
@@ -646,7 +673,8 @@ export async function initZarrDataset(
     levelInfos,
     dimIndices,
     attrs,
-    multiscaleLevel
+    multiscaleLevel,
+    zarrVersion: detectedZarrVersion
   };
 }
 

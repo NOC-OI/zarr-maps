@@ -235,7 +235,8 @@ export interface ZarrTileOptions {
   scale?: [number, number];
   colormap?: ColorMapName;
   selectors?: ZarrSelectors;
-  zarrVersion?: 2 | 3;
+  /** Zarr version. Defaults to null and is detected by trying v3 before v2. */
+  zarrVersion?: 2 | 3 | null;
   dimensionNames?: DimensionNamesProps;
   noDataMin?: number;
   noDataMax?: number;
