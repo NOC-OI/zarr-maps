@@ -542,6 +542,8 @@ export async function initZarrDataset(
   levelInfos: string[];
   dimIndices: DimIndicesProps;
   attrs: Record<string, any>;
+  /** Value metadata inherited from the finest multiscale array. */
+  finestLevelAttrs: Record<string, unknown>;
   multiscaleLevel?: number;
   zarrVersion: 2 | 3;
 }> {
@@ -572,6 +574,7 @@ export async function initZarrDataset(
   let levelInfos: string[] = [];
   let coordinates: Record<string, any> = {};
   let levelPaths: string[] = [];
+  let finestLevelAttrs: Record<string, unknown> = {};
   let pyramidMode = false;
   if (attrs.multiscales) {
     levelPaths = getMultiscaleLevelPaths(attrs, multiscaleFormat);
@@ -616,6 +619,23 @@ export async function initZarrDataset(
 
       levelMetadata.set(i, { width, height });
     }
+    let finestResolutionPixels = -1;
+    let finestLevelIndex = 0;
+    for (const [index, metadata] of levelMetadata) {
+      const pixels = metadata.width * metadata.height;
+      if (pixels > finestResolutionPixels) {
+        finestResolutionPixels = pixels;
+        finestLevelIndex = index;
+      }
+    }
+    const finestLevelArray = await openLevelArray(
+      root,
+      levelInfos[finestLevelIndex],
+      variable,
+      levelCache,
+      detectedZarrVersion
+    );
+    finestLevelAttrs = finestLevelArray.attrs as Record<string, unknown>;
     if (multiscaleLevel === undefined) {
       let lowestResolutionPixels = Number.POSITIVE_INFINITY;
       for (const [index, metadata] of levelMetadata) {
@@ -641,6 +661,7 @@ export async function initZarrDataset(
     const arrayLocation = await root.resolve(variable);
     const localFunc = detectedZarrVersion === 3 ? zarr.open.v3 : zarr.open.v2;
     zarrArray = await localFunc(arrayLocation, { kind: 'array' });
+    finestLevelAttrs = zarrArray.attrs as Record<string, unknown>;
   }
   if (!zarrArray) {
     throw new Error('Failed to initialize Zarr array');
@@ -673,6 +694,7 @@ export async function initZarrDataset(
     levelInfos,
     dimIndices,
     attrs,
+    finestLevelAttrs,
     multiscaleLevel,
     zarrVersion: detectedZarrVersion
   };

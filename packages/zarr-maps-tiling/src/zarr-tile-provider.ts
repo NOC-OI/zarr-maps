@@ -818,7 +818,14 @@ export class ZarrTileProvider {
       this.store = limitStoreRequests(store, ZarrTileProvider.concurrencyLimit);
       this.root = zarr.root(this.store);
 
-      const { zarrArray, levelInfos, dimIndices, attrs, zarrVersion } = await initZarrDataset(
+      const {
+        zarrArray,
+        levelInfos,
+        dimIndices,
+        attrs,
+        finestLevelAttrs,
+        zarrVersion
+      } = await initZarrDataset(
         this.store,
         this.root,
         this.variable,
@@ -843,7 +850,7 @@ export class ZarrTileProvider {
       );
 
       const valueMetadata = resolveValueMetadata(
-        [attrs, zarrArray.attrs as Record<string, unknown>],
+        [attrs, finestLevelAttrs, zarrArray.attrs as Record<string, unknown>],
         this.noDataMin,
         this.noDataMax
       );
